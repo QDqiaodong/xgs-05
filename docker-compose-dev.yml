@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: ${DOCKER_REGISTRY}library/mysql:8.0
+    container_name: ${COMPOSE_PROJECT_NAME}-mysql-dev
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: handmade
+      TZ: Asia/Shanghai
+    ports:
+      - "${MYSQL_PORT}:3306"
+    volumes:
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - mysql_dev_data:/var/lib/mysql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    networks:
+      - handmade-dev
+
+  redis:
+    image: ${DOCKER_REGISTRY}library/redis:7-alpine
+    container_name: ${COMPOSE_PROJECT_NAME}-redis-dev
+    restart: always
+    environment:
+      TZ: Asia/Shanghai
+    ports:
+      - "${REDIS_PORT}:6379"
+    volumes:
+      - redis_dev_data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - handmade-dev
+
+volumes:
+  mysql_dev_data:
+  redis_dev_data:
+
+networks:
+  handmade-dev:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.16.15.0/24
