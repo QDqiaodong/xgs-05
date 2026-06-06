@@ -1,7 +1,22 @@
 <template>
   <div class="work-card masonry-item card" @click="goToDetail">
-    <div class="work-image">
-      <img :src="work.coverImage || 'https://via.placeholder.com/300x400'" :alt="work.title" loading="lazy" />
+    <div class="work-image" :style="{ aspectRatio: imageRatio }">
+      <div v-if="!imgLoaded && !imgError" class="image-placeholder">
+        <div class="skeleton-shimmer"></div>
+      </div>
+      <img
+        v-show="imgLoaded && !imgError"
+        :src="work.coverImage || 'https://via.placeholder.com/300x400'"
+        :alt="work.title"
+        loading="lazy"
+        :class="{ 'img-loaded': imgLoaded }"
+        @load="onImgLoad"
+        @error="onImgError"
+      />
+      <div v-if="imgError" class="image-error">
+        <el-icon :size="32"><PictureFilled /></el-icon>
+        <span>加载失败</span>
+      </div>
       <div v-if="work.isHot" class="hot-tag">热门</div>
     </div>
     <div class="work-info">
@@ -31,9 +46,9 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Star, StarFilled, View } from '@element-plus/icons-vue'
+import { Star, StarFilled, View, PictureFilled } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
 const props = defineProps({
@@ -45,6 +60,38 @@ const props = defineProps({
 
 const router = useRouter()
 const isFavorited = ref(false)
+const imgLoaded = ref(false)
+const imgError = ref(false)
+
+const placeholderColors = [
+  'linear-gradient(135deg, #f5f7fa 0%, #e4e7eb 100%)',
+  'linear-gradient(135deg, #f0f4f8 0%, #d9e2ec 100%)',
+  'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
+  'linear-gradient(135deg, #eef2f7 0%, #dde3ec 100%)'
+]
+
+const placeholderStyle = computed(() => ({
+  background: placeholderColors[props.work.id % placeholderColors.length]
+}))
+
+const imageRatio = computed(() => {
+  const url = props.work.coverImage || ''
+  const match = url.match(/\/(\d+)\/(\d+)/)
+  if (match) {
+    const w = parseInt(match[1])
+    const h = parseInt(match[2])
+    if (w && h) return `${w} / ${h}`
+  }
+  return '3 / 4'
+})
+
+function onImgLoad() {
+  imgLoaded.value = true
+}
+
+function onImgError() {
+  imgError.value = true
+}
 
 function goToDetail() {
   router.push(`/work/${props.work.id}`)
@@ -74,16 +121,66 @@ function toggleFavorite() {
 .work-image {
   position: relative;
   overflow: hidden;
+  background: #f0f0f0;
+}
+
+.image-placeholder {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);
+  overflow: hidden;
+}
+
+.skeleton-shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.5) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 .work-image img {
   width: 100%;
+  height: 100%;
+  object-fit: cover;
   display: block;
-  transition: transform 0.5s;
+  opacity: 0;
+  transition: opacity 0.6s ease-out, transform 0.5s;
+}
+
+.work-image img.img-loaded {
+  opacity: 1;
 }
 
 .work-card:hover .work-image img {
   transform: scale(1.05);
+}
+
+.image-error {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);
+  color: #999;
+  font-size: 12px;
 }
 
 .hot-tag {
@@ -96,6 +193,7 @@ function toggleFavorite() {
   border-radius: 12px;
   font-size: 12px;
   font-weight: 500;
+  z-index: 1;
 }
 
 .work-info {
