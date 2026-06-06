@@ -5,11 +5,11 @@
         <div class="skeleton-shimmer"></div>
       </div>
       <img
-        v-show="imgLoaded && !imgError"
+        ref="imgRef"
         :src="work.coverImage || 'https://via.placeholder.com/300x400'"
         :alt="work.title"
         loading="lazy"
-        :class="{ 'img-loaded': imgLoaded }"
+        :class="{ 'img-loaded': imgLoaded, 'img-hidden': !imgLoaded }"
         @load="onImgLoad"
         @error="onImgError"
       />
@@ -46,7 +46,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { Star, StarFilled, View, PictureFilled } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
@@ -62,6 +62,7 @@ const router = useRouter()
 const isFavorited = ref(false)
 const imgLoaded = ref(false)
 const imgError = ref(false)
+const imgRef = ref(null)
 
 const placeholderColors = [
   'linear-gradient(135deg, #f5f7fa 0%, #e4e7eb 100%)',
@@ -92,6 +93,18 @@ function onImgLoad() {
 function onImgError() {
   imgError.value = true
 }
+
+onMounted(() => {
+  nextTick(() => {
+    if (imgRef.value && imgRef.value.complete) {
+      if (imgRef.value.naturalWidth === 0) {
+        imgError.value = true
+      } else {
+        imgLoaded.value = true
+      }
+    }
+  })
+})
 
 function goToDetail() {
   router.push(`/work/${props.work.id}`)
@@ -158,8 +171,11 @@ function toggleFavorite() {
   height: 100%;
   object-fit: cover;
   display: block;
-  opacity: 0;
   transition: opacity 0.6s ease-out, transform 0.5s;
+}
+
+.work-image img.img-hidden {
+  opacity: 0;
 }
 
 .work-image img.img-loaded {
