@@ -168,17 +168,21 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Plus, Top, Bottom, Delete, Close, DocumentAdd } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import request from '@/utils/request'
+import { useUserStore } from '@/store/user'
 
 const router = useRouter()
+const userStore = useUserStore()
 const formRef = ref(null)
 const submitting = ref(false)
 const previewVisible = ref(false)
 const previewUrl = ref('')
 const fileList = ref([])
+const uploadedImages = ref([])
 
 const categories = ref([
   { id: 1, name: '编织' },
@@ -193,7 +197,8 @@ function createEmptyStep() {
     description: '',
     image: '',
     tips: [],
-    fileList: []
+    fileList: [],
+    uploadedImage: ''
   }
 }
 
@@ -220,6 +225,18 @@ const rules = {
   ]
 }
 
+async function uploadImageFile(file) {
+  const formData = new FormData()
+  formData.append('files', file.raw || file)
+  const res = await request.post('/file/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+  if (res.code === 200 && res.data && res.data.length > 0) {
+    return res.data[0]
+  }
+  throw new Error('上传失败')
+}
+
 function handlePreview(file) {
   previewUrl.value = file.url
   previewVisible.value = true
@@ -227,10 +244,21 @@ function handlePreview(file) {
 
 function handleRemove(file, uploadFiles) {
   fileList.value = uploadFiles
+  uploadedImages.value = uploadFiles.map(f => f.uploadedUrl || f.url).filter(Boolean)
 }
 
-function handleChange(file, uploadFiles) {
+async function handleChange(file, uploadFiles) {
   fileList.value = uploadFiles
+  if (file.raw && !file.uploadedUrl) {
+    try {
+      const url = await uploadImageFile(file)
+      file.uploadedUrl = url
+      uploadedImages.value = fileList.value.map(f => f.uploadedUrl || f.url).filter(Boolean)
+      ElMessage.success('图片上传成功')
+    } catch (e) {
+      ElMessage.error('图片上传失败')
+    }
+  }
 }
 
 function handleStepPreview(file, stepIndex) {
@@ -240,10 +268,25 @@ function handleStepPreview(file, stepIndex) {
 
 function handleStepRemove(file, uploadFiles, stepIndex) {
   form.steps[stepIndex].fileList = uploadFiles
+  form.steps[stepIndex].uploadedImage = uploadFiles[0]?.uploadedUrl || uploadFiles[0]?.url || ''
+  if (!form.steps[stepIndex].uploadedImage) {
+    form.steps[stepIndex].image = ''
+  }
 }
 
-function handleStepChange(file, uploadFiles, stepIndex) {
+async function handleStepChange(file, uploadFiles, stepIndex) {
   form.steps[stepIndex].fileList = uploadFiles
+  if (file.raw && !file.uploadedUrl) {
+    try {
+      const url = await uploadImageFile(file)
+      file.uploadedUrl = url
+      form.steps[stepIndex].uploadedImage = url
+      form.steps[stepIndex].image = url
+      ElMessage.success('步骤图片上传成功')
+    } catch (e) {
+      ElMessage.error('步骤图片上传失败')
+    }
+  }
 }
 
 function addStep() {
@@ -281,19 +324,70 @@ function removeTip(stepIndex, tipIndex) {
   form.steps[stepIndex].tips.splice(tipIndex, 1)
 }
 
-function handleSubmit() {
-  formRef.value.validate((valid) => {
-    if (valid) {
-      if (fileList.value.length === 0) {
-        ElMessage.warning('请至少上传一张作品图片')
-        return
+function buildStepsPayload() {
+  return form.steps
+    .filter(s => s.title && s.description)
+    .map(s => ({
+      title: s.title,
+      description: s.description,
+      image: s.uploadedImage || s.image || '',
+      tips: (s.tips || []).filter(t => t && t.trim())
+    }))
+}
+
+async function handleSubmit() {
+  if (!userStore.isLoggedIn) {
+    ElMessage.warning('请先登录后再发布作品')
+    return
+  }
+
+  formRef.value.validate(async (valid) => {
+    if (!valid) return
+
+    if (uploadedImages.value.length === 0) {
+      ElMessage.warning('请至少上传一张作品图片')
+      return
+    }
+
+    const validSteps = form.steps.filter(s => s.title && s.description)
+    if (form.steps.length > 0 && validSteps.length === 0) {
+      ElMessage.warning('请填写步骤的标题和描述，或删除空步骤')
+      return
+    }
+
+    submitting.value = true
+    try {
+      const payload = {
+        userId: userStore.userInfo?.id || 1,
+        title: form.title,
+        categoryId: form.categoryId,
+        productionCycle: form.productionCycle,
+        materials: form.materials,
+        creationIdea: form.creationIdea,
+        description: form.description,
+        coverImage: uploadedImages.value[0] || '',
+        images: JSON.stringify(uploadedImages.value),
+        steps: JSON.stringify(buildStepsPayload()),
+        viewCount: 0,
+        favoriteCount: 0,
+        likeCount: 0,
+        status: 1,
+        isHot: 0
       }
-      submitting.value = true
-      setTimeout(() => {
+
+      const res = await request.post('/work', payload)
+      if (res.code === 200) {
         ElMessage.success('作品发布成功！')
-        submitting.value = false
-        router.push('/')
-      }, 1500)
+        setTimeout(() => {
+          router.push(`/work/${res.data}`)
+        }, 800)
+      } else {
+        ElMessage.error(res.message || '发布失败')
+      }
+    } catch (e) {
+      ElMessage.error(e.response?.data?.message || '发布失败，请稍后重试')
+    } finally {
+      submitting.value = false
     }
   })
 }
@@ -301,8 +395,13 @@ function handleSubmit() {
 function resetForm() {
   formRef.value.resetFields()
   fileList.value = []
+  uploadedImages.value = []
   form.steps = [createEmptyStep()]
 }
+
+onMounted(() => {
+  userStore.initFromStorage()
+})
 </script>
 
 <style scoped>
