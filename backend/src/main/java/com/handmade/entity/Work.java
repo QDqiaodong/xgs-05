@@ -28,6 +28,8 @@ public class Work {
 
     private String productionCycle;
 
+    private String steps;
+
     private Integer viewCount;
 
     private Integer favoriteCount;

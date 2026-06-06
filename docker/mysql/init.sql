@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS work (
     materials VARCHAR(500) COMMENT '用料清单',
     creation_idea TEXT COMMENT '创作思路',
     production_cycle VARCHAR(50) COMMENT '制作周期',
+    steps TEXT COMMENT '制作步骤(JSON数组)',
     view_count INT DEFAULT 0 COMMENT '浏览量',
     favorite_count INT DEFAULT 0 COMMENT '收藏数',
     like_count INT DEFAULT 0 COMMENT '点赞数',
