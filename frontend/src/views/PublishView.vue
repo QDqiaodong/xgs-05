@@ -35,13 +35,82 @@
         <el-form-item label="制作周期" prop="productionCycle">
           <el-input v-model="form.productionCycle" placeholder="如：7天、1个月" style="width: 200px;" />
         </el-form-item>
-        <el-form-item label="用料清单" prop="materials">
-          <el-input
-            v-model="form.materials"
-            type="textarea"
-            :rows="3"
-            placeholder="请详细列出制作所需材料，如：纯羊毛线500g，棒针一副"
-          />
+        <el-form-item label="用料清单" prop="materials" class="materials-form-item">
+          <div class="materials-editor">
+            <div class="materials-tags" v-if="materialTags.length > 0">
+              <el-tag
+                v-for="(tag, index) in materialTags"
+                :key="index"
+                closable
+                type="primary"
+                effect="light"
+                class="material-tag"
+                @close="removeMaterialTag(index)"
+              >
+                {{ tag }}
+              </el-tag>
+            </div>
+            <el-autocomplete
+              v-model="materialInput"
+              :fetch-suggestions="queryMaterialSuggestions"
+              placeholder="输入用料名称，支持智能联想，回车或点击添加"
+              class="material-autocomplete"
+              :trigger-on-focus="true"
+              @select="handleMaterialSelect"
+              @keyup.enter="handleMaterialEnter"
+              popper-class="material-suggest-popper"
+            >
+              <template #default="{ item }">
+                <div class="material-suggest-item">
+                  <span class="material-suggest-name">{{ item.name }}</span>
+                  <span class="material-suggest-count" v-if="item.count > 0">
+                    已有 {{ item.count }} 人使用
+                  </span>
+                </div>
+              </template>
+            </el-autocomplete>
+            <div class="materials-hot">
+              <div class="materials-hot-label">
+                <el-icon><TrendCharts /></el-icon>
+                <span>热门用料（点击快速添加）</span>
+              </div>
+              <div class="materials-hot-tags">
+                <el-tag
+                  v-for="item in hotMaterials"
+                  :key="item.name"
+                  class="hot-tag"
+                  effect="plain"
+                  :type="isMaterialAdded(item.name) ? 'info' : 'success'"
+                  @click="toggleHotMaterial(item.name)"
+                >
+                  {{ item.name }}
+                  <el-icon v-if="isMaterialAdded(item.name)" class="hot-tag-check"><Check /></el-icon>
+                </el-tag>
+              </div>
+            </div>
+            <div class="materials-batch">
+              <el-button
+                type="primary"
+                plain
+                size="small"
+                :icon="Plus"
+                :disabled="hotMaterials.length === 0"
+                @click="addAllHotMaterials"
+              >
+                一键添加全部热门用料
+              </el-button>
+              <el-button
+                type="default"
+                plain
+                size="small"
+                :icon="Delete"
+                :disabled="materialTags.length === 0"
+                @click="clearAllMaterials"
+              >
+                清空所有用料
+              </el-button>
+            </div>
+          </div>
         </el-form-item>
         <el-form-item label="创作思路" prop="creationIdea">
           <el-input
@@ -168,9 +237,9 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { Plus, Top, Bottom, Delete, Close, DocumentAdd } from '@element-plus/icons-vue'
+import { Plus, Top, Bottom, Delete, Close, DocumentAdd, TrendCharts, Check } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '@/utils/request'
 import { useUserStore } from '@/store/user'
@@ -211,6 +280,128 @@ const form = reactive({
   description: '',
   steps: [createEmptyStep()]
 })
+
+const materialInput = ref('')
+const materialTags = ref([])
+const hotMaterials = ref([])
+const loadingSuggest = ref(false)
+const suggestCache = ref({})
+
+watch(materialTags, (val) => {
+  form.materials = val.join('，')
+}, { immediate: true })
+
+function isMaterialAdded(name) {
+  return materialTags.value.includes(name)
+}
+
+async function fetchHotMaterials() {
+  try {
+    const res = await request.get('/work/materials/suggest', { params: { limit: 12 } })
+    if (res.code === 200 && res.data) {
+      hotMaterials.value = res.data
+    }
+  } catch (e) {
+    console.warn('获取热门用料失败', e)
+    hotMaterials.value = [
+      { name: '纯羊毛线500g', count: 5 },
+      { name: '棒针一副', count: 5 },
+      { name: '钩针', count: 4 },
+      { name: '陶土500g', count: 4 },
+      { name: '纯棉布料', count: 3 },
+      { name: '松木', count: 3 }
+    ]
+  }
+}
+
+async function queryMaterialSuggestions(queryString, cb) {
+  if (!queryString || !queryString.trim()) {
+    cb(hotMaterials.value.slice(0, 8))
+    return
+  }
+  const keyword = queryString.trim()
+  if (suggestCache.value[keyword]) {
+    cb(suggestCache.value[keyword])
+    return
+  }
+  loadingSuggest.value = true
+  try {
+    const res = await request.get('/work/materials/suggest', { params: { keyword, limit: 10 } })
+    let list = []
+    if (res.code === 200 && res.data) {
+      list = res.data
+      suggestCache.value[keyword] = list
+    }
+    cb(list)
+  } catch (e) {
+    cb([])
+  } finally {
+    loadingSuggest.value = false
+  }
+}
+
+function addMaterialTag(name) {
+  const trimmed = (name || '').trim()
+  if (!trimmed) return
+  if (materialTags.value.includes(trimmed)) {
+    ElMessage.warning('该用料已添加')
+    return
+  }
+  materialTags.value.push(trimmed)
+}
+
+function handleMaterialSelect(item) {
+  addMaterialTag(item.name)
+  materialInput.value = ''
+}
+
+function handleMaterialEnter() {
+  if (materialInput.value && materialInput.value.trim()) {
+    const parts = materialInput.value.split(/[,，、;；]+/)
+    parts.forEach(p => addMaterialTag(p))
+    materialInput.value = ''
+  }
+}
+
+function removeMaterialTag(index) {
+  materialTags.value.splice(index, 1)
+}
+
+function toggleHotMaterial(name) {
+  if (isMaterialAdded(name)) {
+    const idx = materialTags.value.indexOf(name)
+    if (idx > -1) materialTags.value.splice(idx, 1)
+  } else {
+    addMaterialTag(name)
+  }
+}
+
+function addAllHotMaterials() {
+  let addedCount = 0
+  hotMaterials.value.forEach(item => {
+    if (!materialTags.value.includes(item.name)) {
+      materialTags.value.push(item.name)
+      addedCount++
+    }
+  })
+  if (addedCount > 0) {
+    ElMessage.success(`已批量添加 ${addedCount} 个热门用料`)
+  } else {
+    ElMessage.info('所有热门用料已添加')
+  }
+}
+
+function clearAllMaterials() {
+  if (materialTags.value.length === 0) return
+  ElMessageBox.confirm('确定要清空所有已添加的用料吗？', '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  }).then(() => {
+    materialTags.value = []
+    ElMessage.success('已清空所有用料')
+  }).catch(() => {})
+}
 
 const rules = {
   title: [
@@ -396,11 +587,14 @@ function resetForm() {
   formRef.value.resetFields()
   fileList.value = []
   uploadedImages.value = []
+  materialTags.value = []
+  materialInput.value = ''
   form.steps = [createEmptyStep()]
 }
 
 onMounted(() => {
   userStore.initFromStorage()
+  fetchHotMaterials()
 })
 </script>
 
@@ -557,5 +751,100 @@ onMounted(() => {
 .steps-empty p {
   margin-top: 12px;
   font-size: 14px;
+}
+
+.materials-form-item :deep(.el-form-item__content) {
+  width: 100%;
+}
+
+.materials-editor {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.materials-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.material-tag {
+  font-size: 13px;
+}
+
+.material-autocomplete {
+  width: 100%;
+}
+
+.materials-hot {
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border-radius: 8px;
+  border: 1px solid #bae6fd;
+}
+
+.materials-hot-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #0369a1;
+  margin-bottom: 10px;
+}
+
+.materials-hot-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.hot-tag {
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s;
+  user-select: none;
+}
+
+.hot-tag:hover {
+  transform: translateY(-1px);
+}
+
+.hot-tag-check {
+  margin-left: 4px;
+}
+
+.materials-batch {
+  display: flex;
+  gap: 8px;
+}
+</style>
+
+<style>
+.material-suggest-popper {
+  padding: 6px 0;
+}
+
+.material-suggest-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  font-size: 14px;
+}
+
+.material-suggest-item:hover {
+  background: #f5f7fa;
+}
+
+.material-suggest-name {
+  color: #303133;
+}
+
+.material-suggest-count {
+  font-size: 12px;
+  color: #909399;
 }
 </style>

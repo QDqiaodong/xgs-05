@@ -7,6 +7,9 @@ import com.handmade.vo.Result;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/work")
 public class WorkController {
@@ -45,6 +48,13 @@ public class WorkController {
             workService.incrementViewCount(id);
         }
         return Result.success(work);
+    }
+
+    @GetMapping("/materials/suggest")
+    public Result<List<Map<String, Object>>> suggestMaterials(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "10") Integer limit) {
+        return Result.success(workService.suggestMaterials(keyword, limit));
     }
 
     @PostMapping
