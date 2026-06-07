@@ -33,11 +33,15 @@
 
       <div v-if="viewMode === 'detail'" class="detail-card card">
         <div class="work-gallery">
-          <div class="main-image">
-            <img :src="work.coverImage || workImages[0] || 'https://picsum.photos/800/600'" alt="作品主图" />
+          <div class="main-image" @click="openViewer(activeImage)">
+            <img :src="displayImages[activeImage] || 'https://picsum.photos/800/600'" alt="作品主图" class="gallery-img" />
+            <div class="zoom-hint">
+              <el-icon><ZoomIn /></el-icon>
+              <span>点击放大查看</span>
+            </div>
           </div>
-          <div class="thumbnails" v-if="workImages.length > 0">
-            <img v-for="(img, index) in workImages" :key="index" :src="img" :class="{ active: activeImage === index }" @click="activeImage = index" />
+          <div class="thumbnails" v-if="displayImages.length > 0">
+            <img v-for="(img, index) in displayImages" :key="index" :src="img" :class="{ active: activeImage === index }" @click="activeImage = index; openViewer(index)" />
           </div>
         </div>
         <div class="work-content">
@@ -123,15 +127,24 @@
         </div>
       </div>
     </template>
+    <ImageViewer
+      v-if="displayImages.length > 0"
+      :visible="viewerVisible"
+      :images="displayImages"
+      :initial-index="viewerInitialIndex"
+      @close="closeViewer"
+      @change="onViewerChange"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { Star, StarFilled, Share, Document, List, ArrowRight, VideoPlay, ArrowLeft, Warning } from '@element-plus/icons-vue'
+import { Star, StarFilled, Share, Document, List, ArrowRight, VideoPlay, ArrowLeft, Warning, ZoomIn } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import StepBrowser from '../components/StepBrowser.vue'
+import ImageViewer from '../components/ImageViewer.vue'
 import request from '@/utils/request'
 
 const route = useRoute()
@@ -141,11 +154,28 @@ const viewMode = ref('detail')
 const loading = ref(true)
 const error = ref(false)
 const errorMsg = ref('')
+const viewerVisible = ref(false)
+const viewerInitialIndex = ref(0)
 
 const work = ref({})
 const author = ref({})
 const workImages = ref([])
 const steps = ref([])
+
+const displayImages = computed(() => {
+  const cover = work.value.coverImage
+  const images = workImages.value || []
+  if (cover && !images.includes(cover)) {
+    return [cover, ...images]
+  }
+  if (images.length > 0) {
+    return images
+  }
+  if (cover) {
+    return [cover]
+  }
+  return []
+})
 
 const categoryName = computed(() => {
   const categories = { 1: '编织', 2: '陶艺', 3: '布艺', 4: '木艺' }
@@ -215,6 +245,20 @@ function onStepsFinish() {
   console.log('用户完成了所有步骤学习')
 }
 
+function openViewer(index) {
+  if (displayImages.value.length === 0) return
+  viewerInitialIndex.value = index || 0
+  viewerVisible.value = true
+}
+
+function closeViewer() {
+  viewerVisible.value = false
+}
+
+function onViewerChange(index) {
+  activeImage.value = index
+}
+
 onMounted(() => {
   fetchWorkDetail()
 })
@@ -248,11 +292,42 @@ onMounted(() => {
   border-radius: 8px;
   overflow: hidden;
   margin-bottom: 16px;
+  position: relative;
+  cursor: zoom-in;
 }
 
-.main-image img {
+.main-image .gallery-img {
   width: 100%;
   display: block;
+  transition: transform 0.3s ease;
+}
+
+.main-image:hover .gallery-img {
+  transform: scale(1.02);
+}
+
+.zoom-hint {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  border-radius: 20px;
+  font-size: 13px;
+  backdrop-filter: blur(10px);
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.3s ease;
+  pointer-events: none;
+}
+
+.main-image:hover .zoom-hint {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .thumbnails {
