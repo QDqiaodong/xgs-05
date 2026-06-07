@@ -35,37 +35,73 @@
     </div>
 
     <div class="profile-tabs">
-      <el-tabs v-model="activeTab" class="tabs">
-        <el-tab-pane label="全部作品" name="works">
-          <div class="masonry-grid">
-            <WorkCard v-for="work in works" :key="work.id" :work="work" />
-          </div>
-          <div v-if="works.length === 0" class="empty">
-            <el-empty description="暂无作品" />
-          </div>
-        </el-tab-pane>
-        <el-tab-pane label="收藏作品" name="favorites">
-          <div class="masonry-grid">
-            <WorkCard v-for="work in favorites" :key="work.id" :work="work" />
-          </div>
-          <div v-if="favorites.length === 0" class="empty">
-            <el-empty description="暂无收藏" />
-          </div>
-        </el-tab-pane>
-      </el-tabs>
+      <div class="tabs-nav-wrapper">
+        <div class="tabs-nav">
+          <div :class="['tab-item', { 'is-active': activeTab === 'works' }]" @click="activeTab = 'works'">全部作品</div>
+          <div :class="['tab-item', { 'is-active': activeTab === 'favorites' }]" @click="activeTab = 'favorites'">收藏作品</div>
+        </div>
+        <div class="layout-switcher">
+          <span class="layout-label">展示模式：</span>
+          <el-radio-group v-model="activeLayout" size="small">
+            <el-radio-button value="masonry">
+              <el-tooltip content="瀑布流" placement="top">
+                <el-icon><Grid /></el-icon>
+              </el-tooltip>
+            </el-radio-button>
+            <el-radio-button value="grid">
+              <el-tooltip content="对称网格" placement="top">
+                <el-icon><Menu /></el-icon>
+              </el-tooltip>
+            </el-radio-button>
+            <el-radio-button value="list">
+              <el-tooltip content="简约列表" placement="top">
+                <el-icon><List /></el-icon>
+              </el-tooltip>
+            </el-radio-button>
+          </el-radio-group>
+        </div>
+      </div>
+
+      <div v-show="activeTab === 'works'">
+        <div v-if="works.length > 0" :class="gridContainerClass">
+          <WorkCard v-for="work in works" :key="work.id" :work="work" :layout="activeLayout" />
+        </div>
+        <div v-if="works.length === 0" class="empty">
+          <el-empty description="暂无作品" />
+        </div>
+      </div>
+
+      <div v-show="activeTab === 'favorites'">
+        <div v-if="favorites.length > 0" :class="gridContainerClass">
+          <WorkCard v-for="work in favorites" :key="work.id" :work="work" :layout="activeLayout" />
+        </div>
+        <div v-if="favorites.length === 0" class="empty">
+          <el-empty description="暂无收藏" />
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useUserStore } from '@/store/user'
+import { Grid, Menu, List } from '@element-plus/icons-vue'
 import WorkCard from '@/components/WorkCard.vue'
 
 const route = useRoute()
 const userStore = useUserStore()
 const activeTab = ref('works')
+const activeLayout = ref(localStorage.getItem('profileLayout') || 'masonry')
+
+const gridContainerClass = computed(() => {
+  return `works-container works-${activeLayout.value}`
+})
+
+watch(activeLayout, (newVal) => {
+  localStorage.setItem('profileLayout', newVal)
+})
 
 const user = ref({
   id: 1,
@@ -89,7 +125,11 @@ const works = ref([
   { id: 1, title: '手工编织毛衣', description: '温暖的羊毛手工编织，耗时一个月完成', coverImage: 'https://picsum.photos/300/400?random=20', authorId: 1, authorName: '小手巧', authorAvatar: 'https://via.placeholder.com/24', viewCount: 1256, favoriteCount: 89, isHot: true, categoryId: 1 },
   { id: 2, title: '毛线围巾', description: '柔软的马海毛线，温暖整个冬天', coverImage: 'https://picsum.photos/300/420?random=21', authorId: 1, authorName: '小手巧', authorAvatar: 'https://via.placeholder.com/24', viewCount: 1890, favoriteCount: 123, isHot: true, categoryId: 1 },
   { id: 3, title: '针织手套', description: '冬日必备，温暖双手', coverImage: 'https://picsum.photos/300/350?random=22', authorId: 1, authorName: '小手巧', authorAvatar: 'https://via.placeholder.com/24', viewCount: 567, favoriteCount: 45, isHot: false, categoryId: 1 },
-  { id: 4, title: '婴儿毛毯', description: '给宝宝最柔软的呵护', coverImage: 'https://picsum.photos/300/380?random=23', authorId: 1, authorName: '小手巧', authorAvatar: 'https://via.placeholder.com/24', viewCount: 2341, favoriteCount: 156, isHot: true, categoryId: 1 }
+  { id: 4, title: '婴儿毛毯', description: '给宝宝最柔软的呵护', coverImage: 'https://picsum.photos/300/380?random=23', authorId: 1, authorName: '小手巧', authorAvatar: 'https://via.placeholder.com/24', viewCount: 2341, favoriteCount: 156, isHot: true, categoryId: 1 },
+  { id: 5, title: '手工编织帽', description: '可爱的贝雷帽，冬日时尚单品', coverImage: 'https://picsum.photos/300/360?random=24', authorId: 1, authorName: '小手巧', authorAvatar: 'https://via.placeholder.com/24', viewCount: 892, favoriteCount: 67, isHot: false, categoryId: 1 },
+  { id: 6, title: '钩针杯垫套装', description: '精致的杯垫，为家居增添温馨', coverImage: 'https://picsum.photos/300/300?random=25', authorId: 1, authorName: '小手巧', authorAvatar: 'https://via.placeholder.com/24', viewCount: 456, favoriteCount: 38, isHot: false, categoryId: 1 },
+  { id: 7, title: '毛线玩偶', description: '可爱的小兔子玩偶，送给孩子的礼物', coverImage: 'https://picsum.photos/300/450?random=26', authorId: 1, authorName: '小手巧', authorAvatar: 'https://via.placeholder.com/24', viewCount: 1678, favoriteCount: 134, isHot: true, categoryId: 1 },
+  { id: 8, title: '手工编织包包', description: '时尚的草编包，夏日必备单品', coverImage: 'https://picsum.photos/300/390?random=27', authorId: 1, authorName: '小手巧', authorAvatar: 'https://via.placeholder.com/24', viewCount: 2134, favoriteCount: 178, isHot: true, categoryId: 1 }
 ])
 
 const favorites = ref([
@@ -173,11 +213,123 @@ onMounted(() => {
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
 }
 
-.tabs :deep(.el-tabs__header) {
+.tabs-nav-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid #e4e7ed;
   margin-bottom: 24px;
+}
+
+.tabs-nav {
+  display: flex;
+  gap: 32px;
+}
+
+.tab-item {
+  padding: 12px 0;
+  font-size: 16px;
+  color: #606266;
+  cursor: pointer;
+  position: relative;
+  transition: color 0.3s;
+  margin-bottom: -2px;
+}
+
+.tab-item:hover {
+  color: #667eea;
+}
+
+.tab-item.is-active {
+  color: #667eea;
+  font-weight: 600;
+}
+
+.tab-item.is-active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #667eea;
+}
+
+.layout-switcher {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 2px;
+}
+
+.layout-label {
+  font-size: 13px;
+  color: #666;
 }
 
 .empty {
   padding: 60px 0;
+}
+
+.works-masonry {
+  column-count: 4;
+  column-gap: 20px;
+}
+
+.works-masonry :deep(.work-card) {
+  break-inside: avoid;
+  margin-bottom: 20px;
+}
+
+.works-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+.works-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+@media (max-width: 1200px) {
+  .works-masonry {
+    column-count: 3;
+  }
+  .works-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .works-masonry {
+    column-count: 2;
+  }
+  .works-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .tabs-nav-wrapper {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .tabs-nav {
+    width: 100%;
+    gap: 24px;
+  }
+  .layout-switcher {
+    width: 100%;
+    padding-bottom: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .works-masonry {
+    column-count: 1;
+  }
+  .works-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

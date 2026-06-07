@@ -1,6 +1,6 @@
 <template>
-  <div class="work-card masonry-item card" @click="goToDetail">
-    <div class="work-image" :style="{ aspectRatio: imageRatio }">
+  <div :class="cardClass" @click="goToDetail">
+    <div :class="imageClass" :style="imageStyle">
       <div v-if="!imgLoaded && !imgError" class="image-placeholder">
         <div class="skeleton-shimmer"></div>
       </div>
@@ -21,7 +21,7 @@
     </div>
     <div class="work-info">
       <h3 class="work-title">{{ work.title }}</h3>
-      <p class="work-desc">{{ work.description }}</p>
+      <p v-if="layout !== 'list'" class="work-desc">{{ work.description }}</p>
       <div class="work-meta">
         <router-link :to="`/profile/${work.authorId}`" class="author" @click.stop>
           <img :src="work.authorAvatar || 'https://via.placeholder.com/24'" alt="author" />
@@ -55,7 +55,38 @@ const props = defineProps({
   work: {
     type: Object,
     required: true
+  },
+  layout: {
+    type: String,
+    default: 'masonry',
+    validator: (val) => ['masonry', 'grid', 'list'].includes(val)
   }
+})
+
+const cardClass = computed(() => {
+  const classes = ['work-card', 'card']
+  if (props.layout === 'masonry') {
+    classes.push('masonry-item')
+  }
+  classes.push(`layout-${props.layout}`)
+  return classes
+})
+
+const imageClass = computed(() => {
+  return ['work-image', `image-${props.layout}`]
+})
+
+const imageStyle = computed(() => {
+  if (props.layout === 'masonry') {
+    return { aspectRatio: imageRatio.value }
+  }
+  if (props.layout === 'grid') {
+    return { aspectRatio: '1 / 1' }
+  }
+  if (props.layout === 'list') {
+    return { aspectRatio: '4 / 3', width: '200px', flexShrink: '0' }
+  }
+  return {}
 })
 
 const router = useRouter()
@@ -124,6 +155,10 @@ function toggleFavorite() {
 .work-card {
   cursor: pointer;
   transition: transform 0.3s, box-shadow 0.3s;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
 }
 
 .work-card:hover {
@@ -131,10 +166,23 @@ function toggleFavorite() {
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
 }
 
+.work-card.layout-list {
+  display: flex;
+  flex-direction: row;
+}
+
+.work-card.layout-list:hover {
+  transform: translateX(5px);
+}
+
 .work-image {
   position: relative;
   overflow: hidden;
   background: #f0f0f0;
+}
+
+.work-image.image-list {
+  border-radius: 8px 0 0 8px;
 }
 
 .image-placeholder {
