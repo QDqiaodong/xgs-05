@@ -6,15 +6,24 @@ import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 import App from './App.vue'
 import router from './router'
 import './assets/styles/global.scss'
+import { useUserStore } from '@/store/user'
+import { useInspirationStore } from '@/store/inspiration'
 
 const app = createApp(App)
+const pinia = createPinia()
 
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
   app.component(key, component)
 }
 
-app.use(createPinia())
+app.use(pinia)
 app.use(router)
 app.use(ElementPlus)
+
+const userStore = useUserStore(pinia)
+userStore.initFromStorage()
+
+const inspirationStore = useInspirationStore(pinia)
+inspirationStore.init()
 
 app.mount('#app')

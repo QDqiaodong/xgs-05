@@ -30,6 +30,11 @@ const routes = [
     path: '/category/:categoryId',
     name: 'Category',
     component: () => import('@/views/CategoryView.vue')
+  },
+  {
+    path: '/inspiration',
+    name: 'Inspiration',
+    component: () => import('@/views/InspirationCanvasView.vue')
   }
 ]
 
