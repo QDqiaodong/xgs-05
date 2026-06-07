@@ -546,6 +546,9 @@ async function handleSubmit() {
       return
     }
 
+    const materialsValue = materialTags.value.join('，')
+    form.materials = materialsValue
+
     submitting.value = true
     try {
       const payload = {
@@ -553,7 +556,7 @@ async function handleSubmit() {
         title: form.title,
         categoryId: form.categoryId,
         productionCycle: form.productionCycle,
-        materials: form.materials,
+        materials: materialsValue,
         creationIdea: form.creationIdea,
         description: form.description,
         coverImage: uploadedImages.value[0] || '',
@@ -565,6 +568,10 @@ async function handleSubmit() {
         status: 1,
         isHot: 0
       }
+
+      console.log('[发布作品] 请求 payload:', payload)
+      console.log('[发布作品] 用料 tags:', materialTags.value)
+      console.log('[发布作品] 用料字符串:', materialsValue)
 
       const res = await request.post('/work', payload)
       if (res.code === 200) {
@@ -589,6 +596,7 @@ function resetForm() {
   uploadedImages.value = []
   materialTags.value = []
   materialInput.value = ''
+  form.materials = ''
   form.steps = [createEmptyStep()]
 }
 
