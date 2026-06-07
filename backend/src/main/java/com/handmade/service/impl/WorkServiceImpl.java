@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.handmade.entity.Work;
 import com.handmade.mapper.WorkMapper;
 import com.handmade.service.WorkService;
+import com.handmade.strategy.HotScoreCalculator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -25,9 +26,13 @@ public class WorkServiceImpl extends ServiceImpl<WorkMapper, Work> implements Wo
     private static final long CACHE_EXPIRE = 1;
     private static final long MATERIALS_CACHE_EXPIRE = 2;
     private static final Pattern MATERIAL_SPLIT_PATTERN = Pattern.compile("[,，、;；\\n\\r]+");
+    private static final int HOT_CANDIDATE_LIMIT = 200;
 
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
+
+    @Autowired
+    private HotScoreCalculator hotScoreCalculator;
 
     @Override
     public IPage<Work> getWorkList(Integer page, Integer size, Long categoryId, String keyword) {
@@ -47,21 +52,54 @@ public class WorkServiceImpl extends ServiceImpl<WorkMapper, Work> implements Wo
     public IPage<Work> getHotWorks(Integer page, Integer size) {
         List<Work> hotWorks = (List<Work>) redisTemplate.opsForValue().get(HOT_WORKS_KEY);
         if (hotWorks != null && !hotWorks.isEmpty()) {
-            Page<Work> result = new Page<>(page, size);
-            result.setRecords(hotWorks);
-            result.setTotal(hotWorks.size());
+            return buildPagedResult(hotWorks, page, size);
+        }
+
+        List<Work> candidates = fetchHotCandidates();
+        List<Work> sortedWorks = sortByHotScore(candidates);
+
+        if (!sortedWorks.isEmpty()) {
+            redisTemplate.opsForValue().set(HOT_WORKS_KEY, sortedWorks, CACHE_EXPIRE, TimeUnit.HOURS);
+        }
+
+        return buildPagedResult(sortedWorks, page, size);
+    }
+
+    private List<Work> fetchHotCandidates() {
+        LambdaQueryWrapper<Work> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Work::getStatus, 1);
+        wrapper.orderByDesc(Work::getCreateTime);
+        wrapper.last("LIMIT " + HOT_CANDIDATE_LIMIT);
+        return this.list(wrapper);
+    }
+
+    private List<Work> sortByHotScore(List<Work> works) {
+        return works.stream()
+                .sorted(Comparator.comparingDouble(this::getHotScore).reversed())
+                .collect(Collectors.toList());
+    }
+
+    private double getHotScore(Work work) {
+        return hotScoreCalculator.calculate(work);
+    }
+
+    private IPage<Work> buildPagedResult(List<Work> allWorks, Integer page, Integer size) {
+        Page<Work> result = new Page<>(page, size);
+        int total = allWorks.size();
+        result.setTotal(total);
+
+        if (total == 0) {
+            result.setRecords(Collections.emptyList());
             return result;
         }
 
-        LambdaQueryWrapper<Work> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Work::getStatus, 1);
-        wrapper.eq(Work::getIsHot, 1);
-        wrapper.orderByDesc(Work::getViewCount);
-        IPage<Work> result = this.page(new Page<>(page, size), wrapper);
-
-        if (result.getRecords() != null && !result.getRecords().isEmpty()) {
-            redisTemplate.opsForValue().set(HOT_WORKS_KEY, result.getRecords(), CACHE_EXPIRE, TimeUnit.HOURS);
+        int fromIndex = (page - 1) * size;
+        int toIndex = Math.min(fromIndex + size, total);
+        if (fromIndex >= total) {
+            result.setRecords(Collections.emptyList());
+            return result;
         }
+        result.setRecords(allWorks.subList(fromIndex, toIndex));
         return result;
     }
 
