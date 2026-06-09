@@ -34,11 +34,12 @@
       <div v-if="viewMode === 'detail'" class="detail-card card">
         <div class="work-gallery">
           <div class="main-image" @click="openViewer(activeImage)">
-            <img :src="displayImages[activeImage] || 'https://picsum.photos/800/600'" alt="作品主图" class="gallery-img" />
-            <div class="zoom-hint">
-              <el-icon><ZoomIn /></el-icon>
-              <span>点击放大查看</span>
-            </div>
+            <ImageMagnifier
+              :image-url="displayImages[activeImage] || 'https://picsum.photos/800/600'"
+              alt="作品主图"
+              :magnifications="[2, 3, 4]"
+              :default-magnification="2"
+            />
           </div>
           <div class="thumbnails" v-if="displayImages.length > 0">
             <img v-for="(img, index) in displayImages" :key="index" :src="img" :class="{ active: activeImage === index }" @click="activeImage = index; openViewer(index)" />
@@ -145,6 +146,7 @@ import { Star, StarFilled, Share, Document, List, ArrowRight, VideoPlay, ArrowLe
 import { ElMessage } from 'element-plus'
 import StepBrowser from '../components/StepBrowser.vue'
 import ImageViewer from '../components/ImageViewer.vue'
+import ImageMagnifier from '../components/ImageMagnifier.vue'
 import request from '@/utils/request'
 
 const route = useRoute()
@@ -290,44 +292,9 @@ onMounted(() => {
 
 .main-image {
   border-radius: 8px;
-  overflow: hidden;
+  overflow: visible;
   margin-bottom: 16px;
   position: relative;
-  cursor: zoom-in;
-}
-
-.main-image .gallery-img {
-  width: 100%;
-  display: block;
-  transition: transform 0.3s ease;
-}
-
-.main-image:hover .gallery-img {
-  transform: scale(1.02);
-}
-
-.zoom-hint {
-  position: absolute;
-  bottom: 16px;
-  right: 16px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  background: rgba(0, 0, 0, 0.6);
-  color: #fff;
-  border-radius: 20px;
-  font-size: 13px;
-  backdrop-filter: blur(10px);
-  opacity: 0;
-  transform: translateY(10px);
-  transition: all 0.3s ease;
-  pointer-events: none;
-}
-
-.main-image:hover .zoom-hint {
-  opacity: 1;
-  transform: translateY(0);
 }
 
 .thumbnails {
