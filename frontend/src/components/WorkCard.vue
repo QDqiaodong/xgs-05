@@ -37,7 +37,7 @@
               <StarFilled v-if="isFavorited" />
               <Star v-else />
             </el-icon>
-            {{ work.favoriteCount }}
+            {{ displayFavoriteCount }}
           </span>
         </div>
       </div>
@@ -51,6 +51,8 @@ import { useRouter } from 'vue-router'
 import { Star, StarFilled, View, PictureFilled } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { getSmallImage } from '@/utils/image'
+import { useFavoriteStore } from '@/store/favorite'
+import { useUserStore } from '@/store/user'
 
 const props = defineProps({
   work: {
@@ -91,10 +93,23 @@ const imageStyle = computed(() => {
 })
 
 const router = useRouter()
-const isFavorited = ref(false)
+const favoriteStore = useFavoriteStore()
+const userStore = useUserStore()
 const imgLoaded = ref(false)
 const imgError = ref(false)
 const imgRef = ref(null)
+const workLocal = ref({ ...props.work })
+
+const isFavorited = computed(() => {
+  favoriteStore.version
+  return favoriteStore.isFavorited(props.work.id)
+})
+
+const displayFavoriteCount = computed(() => {
+  favoriteStore.version
+  const base = props.work.favoriteCount || 0
+  return base
+})
 
 const placeholderColors = [
   'linear-gradient(135deg, #f5f7fa 0%, #e4e7eb 100%)',
@@ -130,7 +145,25 @@ function onImgError() {
   imgError.value = true
 }
 
-onMounted(() => {
+function goToDetail() {
+  router.push(`/work/${props.work.id}`)
+}
+
+async function toggleFavorite() {
+  if (!userStore.isLoggedIn) {
+    ElMessage.warning('请先登录')
+    return
+  }
+  if (!props.work.id) return
+  const result = await favoriteStore.toggleFavorite(props.work.id)
+  if (result.success) {
+    ElMessage.success(result.message)
+  } else if (result.message) {
+    ElMessage.error(result.message)
+  }
+}
+
+onMounted(async () => {
   nextTick(() => {
     if (imgRef.value && imgRef.value.complete) {
       if (imgRef.value.naturalWidth === 0) {
@@ -140,20 +173,10 @@ onMounted(() => {
       }
     }
   })
-})
-
-function goToDetail() {
-  router.push(`/work/${props.work.id}`)
-}
-
-function toggleFavorite() {
-  isFavorited.value = !isFavorited.value
-  if (isFavorited.value) {
-    ElMessage.success('已收藏')
-  } else {
-    ElMessage.info('已取消收藏')
+  if (userStore.isLoggedIn && props.work.id) {
+    favoriteStore.checkFavorite(props.work.id)
   }
-}
+})
 </script>
 
 <style scoped>

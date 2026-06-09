@@ -8,6 +8,7 @@ import router from './router'
 import './assets/styles/global.scss'
 import { useUserStore } from '@/store/user'
 import { useInspirationStore } from '@/store/inspiration'
+import { useFavoriteStore } from '@/store/favorite'
 
 const app = createApp(App)
 const pinia = createPinia()
@@ -25,5 +26,10 @@ userStore.initFromStorage()
 
 const inspirationStore = useInspirationStore(pinia)
 inspirationStore.init()
+
+const favoriteStore = useFavoriteStore(pinia)
+if (userStore.isLoggedIn && userStore.userInfo?.id) {
+  favoriteStore.initFavorites(userStore.userInfo.id)
+}
 
 app.mount('#app')

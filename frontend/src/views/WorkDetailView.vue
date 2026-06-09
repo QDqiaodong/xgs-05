@@ -146,7 +146,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { Star, StarFilled, Share, Document, List, ArrowRight, VideoPlay, ArrowLeft, Warning, ZoomIn, Picture } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
@@ -155,16 +155,24 @@ import ImageViewer from '../components/ImageViewer.vue'
 import ImageMagnifier from '../components/ImageMagnifier.vue'
 import request from '@/utils/request'
 import { getSmallImage, getMediumImage, getLargeImage, getOriginalImage } from '@/utils/image'
+import { useFavoriteStore } from '@/store/favorite'
+import { useUserStore } from '@/store/user'
 
 const route = useRoute()
+const favoriteStore = useFavoriteStore()
+const userStore = useUserStore()
 const activeImage = ref(0)
-const isFavorited = ref(false)
 const viewMode = ref('detail')
 const loading = ref(true)
 const error = ref(false)
 const errorMsg = ref('')
 const viewerVisible = ref(false)
 const viewerInitialIndex = ref(0)
+
+const isFavorited = computed(() => {
+  favoriteStore.version
+  return favoriteStore.isFavorited(work.value.id)
+})
 
 const work = ref({})
 const author = ref({})
@@ -250,15 +258,34 @@ async function fetchAuthorInfo(userId) {
   }
 }
 
-function toggleFavorite() {
-  isFavorited.value = !isFavorited.value
-  if (isFavorited.value) {
-    work.value.favoriteCount = (work.value.favoriteCount || 0) + 1
-    ElMessage.success('已收藏作品')
-  } else {
-    work.value.favoriteCount = Math.max(0, (work.value.favoriteCount || 0) - 1)
-    ElMessage.info('已取消收藏')
+async function toggleFavorite() {
+  if (!userStore.isLoggedIn) {
+    ElMessage.warning('请先登录')
+    return
   }
+  if (!work.value.id) return
+  const wasFavorited = favoriteStore.isFavorited(work.value.id)
+  const optimisticCount = wasFavorited
+    ? Math.max(0, (work.value.favoriteCount || 0) - 1)
+    : (work.value.favoriteCount || 0) + 1
+  work.value.favoriteCount = optimisticCount
+
+  const result = await favoriteStore.toggleFavorite(work.value.id)
+  if (result.success) {
+    ElMessage.success(result.message)
+  } else {
+    work.value.favoriteCount = wasFavorited
+      ? (work.value.favoriteCount || 0) + 1
+      : Math.max(0, (work.value.favoriteCount || 0) - 1)
+    if (result.message) {
+      ElMessage.error(result.message)
+    }
+  }
+}
+
+async function syncFavoriteStatus() {
+  if (!userStore.isLoggedIn || !work.value.id) return
+  await favoriteStore.checkFavorite(work.value.id)
 }
 
 function jumpToStepMode() {
@@ -295,8 +322,17 @@ function handleMainImageError() {
   imageErrors.value = { ...imageErrors.value, [activeImage.value]: true }
 }
 
-onMounted(() => {
-  fetchWorkDetail()
+onMounted(async () => {
+  await fetchWorkDetail()
+  if (userStore.isLoggedIn) {
+    syncFavoriteStatus()
+  }
+})
+
+watch(() => userStore.isLoggedIn, (val) => {
+  if (val && work.value.id) {
+    syncFavoriteStatus()
+  }
 })
 </script>
 

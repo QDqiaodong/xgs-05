@@ -50,21 +50,39 @@ public class FavoriteController {
     @PostMapping
     @Transactional
     public Result<Boolean> addFavorite(@RequestBody Favorite favorite) {
-        LambdaQueryWrapper<Favorite> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Favorite::getUserId, favorite.getUserId());
-        wrapper.eq(Favorite::getWorkId, favorite.getWorkId());
-        Favorite exist = favoriteService.getOne(wrapper);
-        if (exist != null) {
-            return Result.success(true);
+        if (favorite.getUserId() == null || favorite.getWorkId() == null) {
+            return Result.error("参数不完整");
         }
-        favoriteService.save(favorite);
-        workService.incrementFavoriteCount(favorite.getWorkId(), true);
-        return Result.success(true);
+        try {
+            LambdaQueryWrapper<Favorite> wrapper = new LambdaQueryWrapper<>();
+            wrapper.eq(Favorite::getUserId, favorite.getUserId());
+            wrapper.eq(Favorite::getWorkId, favorite.getWorkId());
+            Favorite exist = favoriteService.getOne(wrapper);
+            if (exist != null) {
+                return Result.success(true);
+            }
+            boolean saved = favoriteService.save(favorite);
+            if (saved) {
+                workService.incrementFavoriteCount(favorite.getWorkId(), true);
+            }
+            return Result.success(true);
+        } catch (Exception e) {
+            LambdaQueryWrapper<Favorite> wrapper = new LambdaQueryWrapper<>();
+            wrapper.eq(Favorite::getUserId, favorite.getUserId());
+            wrapper.eq(Favorite::getWorkId, favorite.getWorkId());
+            if (favoriteService.count(wrapper) > 0) {
+                return Result.success(true);
+            }
+            return Result.error("收藏失败: " + e.getMessage());
+        }
     }
 
     @DeleteMapping
     @Transactional
     public Result<Boolean> removeFavorite(@RequestParam Long userId, @RequestParam Long workId) {
+        if (userId == null || workId == null) {
+            return Result.error("参数不完整");
+        }
         LambdaQueryWrapper<Favorite> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Favorite::getUserId, userId);
         wrapper.eq(Favorite::getWorkId, workId);

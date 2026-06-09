@@ -114,23 +114,13 @@ public class WorkServiceImpl extends ServiceImpl<WorkMapper, Work> implements Wo
 
     @Override
     public boolean incrementViewCount(Long workId) {
-        Work work = this.getById(workId);
-        if (work != null) {
-            work.setViewCount(work.getViewCount() + 1);
-            return this.updateById(work);
-        }
-        return false;
+        return workMapper.incrementViewCountAtomic(workId) > 0;
     }
 
     @Override
     public boolean incrementFavoriteCount(Long workId, boolean increment) {
-        Work work = this.getById(workId);
-        if (work != null) {
-            int count = increment ? 1 : -1;
-            work.setFavoriteCount(Math.max(0, work.getFavoriteCount() + count));
-            return this.updateById(work);
-        }
-        return false;
+        int delta = increment ? 1 : -1;
+        return workMapper.updateFavoriteCountAtomic(workId, delta) > 0;
     }
 
     @Override

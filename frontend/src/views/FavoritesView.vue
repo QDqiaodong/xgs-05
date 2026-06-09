@@ -2,13 +2,13 @@
   <div class="favorites container">
     <div class="page-header">
       <h1>我的收藏</h1>
-      <p class="subtitle">共收藏 {{ favorites.length }} 件作品</p>
+      <p class="subtitle">共收藏 {{ displayedFavorites.length }} 件作品</p>
     </div>
     <div v-if="loading" class="loading">
       <el-skeleton :rows="5" animated />
     </div>
-    <div v-else-if="favorites.length > 0" class="masonry-grid">
-      <WorkCard v-for="work in favorites" :key="work.id" :work="work" />
+    <div v-else-if="displayedFavorites.length > 0" class="masonry-grid">
+      <WorkCard v-for="work in displayedFavorites" :key="work.id" :work="work" />
     </div>
     <div v-else class="empty-state">
       <el-empty description="暂无收藏作品">
@@ -19,28 +19,70 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import WorkCard from '@/components/WorkCard.vue'
+import { useFavoriteStore } from '@/store/favorite'
+import { useUserStore } from '@/store/user'
+import request from '@/utils/request'
+import { ElMessage } from 'element-plus'
 
+const favoriteStore = useFavoriteStore()
+const userStore = useUserStore()
 const loading = ref(true)
 const favorites = ref([])
+const currentPage = ref(1)
+const pageSize = ref(20)
+const total = ref(0)
 
-const mockFavorites = [
-  { id: 1, title: '手工编织毛衣', description: '温暖的羊毛手工编织，耗时一个月完成', coverImage: 'https://picsum.photos/300/400?random=30', authorId: 1, authorName: '小手巧', authorAvatar: 'https://via.placeholder.com/24', viewCount: 1256, favoriteCount: 89, isHot: true, categoryId: 1 },
-  { id: 2, title: '陶艺花瓶', description: '手工拉坯制作，釉色温润如玉', coverImage: 'https://picsum.photos/300/350?random=31', authorId: 2, authorName: '陶然', authorAvatar: 'https://via.placeholder.com/24', viewCount: 892, favoriteCount: 67, isHot: false, categoryId: 2 },
-  { id: 3, title: '布艺玩偶套装', description: '可爱的小动物布艺玩偶，送给孩子的礼物', coverImage: 'https://picsum.photos/300/450?random=32', authorId: 3, authorName: '布布', authorAvatar: 'https://via.placeholder.com/24', viewCount: 2341, favoriteCount: 156, isHot: true, categoryId: 3 }
-]
+const displayedFavorites = computed(() => {
+  favoriteStore.version
+  return favorites.value.filter(w => favoriteStore.isFavorited(w.id))
+})
 
-function loadFavorites() {
-  loading.value = true
-  setTimeout(() => {
-    favorites.value = mockFavorites
+async function loadFavorites() {
+  if (!userStore.isLoggedIn || !userStore.userInfo?.id) {
     loading.value = false
-  }, 500)
+    favorites.value = []
+    return
+  }
+  loading.value = true
+  try {
+    const res = await request.get(`/favorite/list/${userStore.userInfo.id}`, {
+      params: { page: currentPage.value, size: pageSize.value }
+    })
+    if (res.code === 200 && res.data) {
+      favorites.value = res.data.records || []
+      total.value = res.data.total || 0
+      const ids = favorites.value.map(w => Number(w.id))
+      ids.forEach(id => favoriteStore.favoriteWorkIds.add(id))
+      favoriteStore.touchVersion()
+    } else {
+      favorites.value = []
+    }
+  } catch (e) {
+    ElMessage.error('加载收藏列表失败')
+    favorites.value = []
+  } finally {
+    loading.value = false
+  }
 }
 
 onMounted(() => {
   loadFavorites()
+})
+
+watch(() => favoriteStore.version, () => {
+  if (userStore.isLoggedIn) {
+    loadFavorites()
+  }
+})
+
+watch(() => userStore.isLoggedIn, (val) => {
+  if (val) {
+    loadFavorites()
+  } else {
+    favorites.value = []
+  }
 })
 </script>
 

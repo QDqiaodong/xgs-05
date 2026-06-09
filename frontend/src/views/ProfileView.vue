@@ -72,10 +72,10 @@
       </div>
 
       <div v-show="activeTab === 'favorites'">
-        <div v-if="favorites.length > 0" :class="gridContainerClass">
-          <WorkCard v-for="work in favorites" :key="work.id" :work="work" :layout="activeLayout" />
+        <div v-if="displayedFavorites.length > 0" :class="gridContainerClass">
+          <WorkCard v-for="work in displayedFavorites" :key="work.id" :work="work" :layout="activeLayout" />
         </div>
-        <div v-if="favorites.length === 0" class="empty">
+        <div v-if="displayedFavorites.length === 0" class="empty">
           <el-empty description="暂无收藏" />
         </div>
       </div>
@@ -87,11 +87,15 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useUserStore } from '@/store/user'
+import { useFavoriteStore } from '@/store/favorite'
 import { Grid, Menu, List } from '@element-plus/icons-vue'
 import WorkCard from '@/components/WorkCard.vue'
+import request from '@/utils/request'
+import { ElMessage } from 'element-plus'
 
 const route = useRoute()
 const userStore = useUserStore()
+const favoriteStore = useFavoriteStore()
 const activeTab = ref('works')
 const activeLayout = ref(localStorage.getItem('profileLayout') || 'masonry')
 
@@ -132,12 +136,66 @@ const works = ref([
   { id: 8, title: '手工编织包包', description: '时尚的草编包，夏日必备单品', coverImage: 'https://picsum.photos/300/390?random=27', authorId: 1, authorName: '小手巧', authorAvatar: 'https://via.placeholder.com/24', viewCount: 2134, favoriteCount: 178, isHot: true, categoryId: 1 }
 ])
 
-const favorites = ref([
-  { id: 10, title: '陶艺花瓶', description: '手工拉坯制作，釉色温润如玉', coverImage: 'https://picsum.photos/300/350?random=24', authorId: 2, authorName: '陶然', authorAvatar: 'https://via.placeholder.com/24', viewCount: 892, favoriteCount: 67, isHot: false, categoryId: 2 }
-])
+const favorites = ref([])
+const favoritesLoading = ref(false)
+
+const displayedFavorites = computed(() => {
+  favoriteStore.version
+  return favorites.value.filter(w => favoriteStore.isFavorited(w.id))
+})
+
+async function loadProfileFavorites() {
+  if (!userStore.isLoggedIn || !userStore.userInfo?.id) {
+    favorites.value = []
+    return
+  }
+  if (!isOwner.value) {
+    favorites.value = []
+    return
+  }
+  favoritesLoading.value = true
+  try {
+    const res = await request.get(`/favorite/list/${userStore.userInfo.id}`, {
+      params: { page: 1, size: 50 }
+    })
+    if (res.code === 200 && res.data) {
+      favorites.value = res.data.records || []
+      const ids = favorites.value.map(w => Number(w.id))
+      ids.forEach(id => favoriteStore.favoriteWorkIds.add(id))
+      favoriteStore.touchVersion()
+    }
+  } catch (e) {
+    console.warn('加载收藏失败', e)
+  } finally {
+    favoritesLoading.value = false
+  }
+}
 
 onMounted(() => {
   console.log('User ID:', route.params.userId)
+  if (activeTab.value === 'favorites') {
+    loadProfileFavorites()
+  }
+})
+
+watch(activeTab, (val) => {
+  if (val === 'favorites') {
+    loadProfileFavorites()
+  }
+})
+
+watch(() => favoriteStore.version, () => {
+  if (activeTab.value === 'favorites' && isOwner.value) {
+    loadProfileFavorites()
+  }
+})
+
+watch(() => userStore.isLoggedIn, (val) => {
+  if (val && activeTab.value === 'favorites') {
+    loadProfileFavorites()
+  } else if (!val) {
+    favorites.value = []
+  }
 })
 </script>
 
