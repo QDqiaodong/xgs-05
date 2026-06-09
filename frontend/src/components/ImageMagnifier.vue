@@ -1,12 +1,12 @@
 <template>
   <div
     class="image-magnifier-container"
-    @mouseenter="onMouseEnter"
-    @mouseleave="onMouseLeave"
-    @mousemove="onMouseMove"
+    @mouseenter="handleMouseEnter"
+    @mouseleave="handleMouseLeave"
+    @mousemove="handleMouseMove"
     ref="containerRef"
   >
-    <div class="main-image-wrapper">
+    <div class="main-image-wrapper" ref="wrapperRef">
       <img
         :src="imageUrl"
         :alt="alt"
@@ -18,31 +18,21 @@
       <div
         v-if="isHovering"
         class="lens"
-        :style="{
-          width: lensSize + 'px',
-          height: lensSize + 'px',
-          left: lensPosition.x + 'px',
-          top: lensPosition.y + 'px',
-          opacity: isMouseOnImage ? 1 : 0
-        }"
+        :style="lensStyle"
       ></div>
       <div class="magnifier-hint" :class="{ hidden: isHovering }">
         <el-icon><ZoomIn /></el-icon>
         <span>悬停查看细节</span>
       </div>
     </div>
+  </div>
 
+  <Teleport to="body">
     <Transition name="magnifier-fade">
       <div
         v-if="isHovering && showMagnifier"
         class="magnified-view"
-        :style="{
-          width: magnifierSize + 'px',
-          height: magnifierSize + 'px',
-          backgroundImage: `url(${imageUrl})`,
-          backgroundSize: `${imgRect.width * magnification}px ${imgRect.height * magnification}px`,
-          backgroundPosition: `${-bgPosition.x}px ${-bgPosition.y}px`
-        }"
+        :style="magnifiedViewStyle"
       >
         <div class="magnifier-toolbar">
           <div class="magnification-buttons">
@@ -51,7 +41,7 @@
               :key="idx"
               class="mag-btn"
               :class="{ active: magnification === m }"
-              @click.stop="setMagnification(m)"
+              @click.stop="handleSetMagnification(m)"
             >
               {{ m }}x
             </button>
@@ -63,12 +53,14 @@
         </div>
       </div>
     </Transition>
-  </div>
+  </Teleport>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { ZoomIn, View } from '@element-plus/icons-vue'
+import { useImageRect } from '@/composables/useImageRect'
+import { useMagnifier } from '@/composables/useMagnifier'
 
 const props = defineProps({
   imageUrl: {
@@ -101,89 +93,83 @@ const emit = defineEmits(['magnification-change'])
 
 const containerRef = ref(null)
 const imageRef = ref(null)
+const wrapperRef = ref(null)
 
-const isHovering = ref(false)
-const isMouseOnImage = ref(false)
-const magnification = ref(props.defaultMagnification)
+const { imgRect, updateImageRect } = useImageRect(imageRef, containerRef)
 
-const lensPosition = reactive({ x: 0, y: 0 })
-const bgPosition = reactive({ x: 0, y: 0 })
-
-const imgRect = reactive({
-  width: 0,
-  height: 0,
-  offsetLeft: 0,
-  offsetTop: 0
+const {
+  isHovering,
+  isMouseOnImage,
+  magnification,
+  lensPosition,
+  bgPosition,
+  showMagnifier,
+  onMouseEnter,
+  onMouseLeave,
+  onMouseMove,
+  setMagnification
+} = useMagnifier({
+  lensSize: props.lensSize,
+  magnifierSize: props.magnifierSize,
+  defaultMagnification: props.defaultMagnification,
+  imgRect,
+  containerRef,
+  emit
 })
 
-const showMagnifier = computed(() => imgRect.width > 0 && imgRect.height > 0)
+const lensStyle = computed(() => ({
+  width: props.lensSize + 'px',
+  height: props.lensSize + 'px',
+  left: lensPosition.x + 'px',
+  top: lensPosition.y + 'px',
+  opacity: isMouseOnImage.value ? 1 : 0
+}))
+
+const magnifiedViewPosition = computed(() => {
+  if (!wrapperRef.value) return { left: 0, top: 0 }
+  const rect = wrapperRef.value.getBoundingClientRect()
+  const gap = 24
+  let left = rect.left - props.magnifierSize - gap
+  let top = rect.top
+  const viewportWidth = window.innerWidth
+  if (left < 16) {
+    left = rect.right + gap
+  }
+  if (left + props.magnifierSize > viewportWidth - 16) {
+    left = Math.max(16, viewportWidth - props.magnifierSize - 16)
+  }
+  return { left, top }
+})
+
+const magnifiedViewStyle = computed(() => ({
+  width: props.magnifierSize + 'px',
+  height: props.magnifierSize + 'px',
+  left: magnifiedViewPosition.value.left + 'px',
+  top: magnifiedViewPosition.value.top + 'px',
+  backgroundImage: `url(${props.imageUrl})`,
+  backgroundSize: `${imgRect.width * magnification.value}px ${imgRect.height * magnification.value}px`,
+  backgroundPosition: `${-bgPosition.x}px ${-bgPosition.y}px`
+}))
 
 function onImageLoad() {
   updateImageRect()
 }
 
-function updateImageRect() {
-  if (!imageRef.value || !containerRef.value) return
-  const img = imageRef.value.getBoundingClientRect()
-  const container = containerRef.value.getBoundingClientRect()
-  imgRect.width = img.width
-  imgRect.height = img.height
-  imgRect.offsetLeft = img.left - container.left
-  imgRect.offsetTop = img.top - container.top
-}
-
-function onMouseEnter() {
-  isHovering.value = true
+function handleMouseEnter() {
   updateImageRect()
+  onMouseEnter()
 }
 
-function onMouseLeave() {
-  isHovering.value = false
-  isMouseOnImage.value = false
+function handleMouseLeave() {
+  onMouseLeave()
 }
 
-function onMouseMove(e) {
-  if (!containerRef.value) return
-  const container = containerRef.value.getBoundingClientRect()
-  const mouseX = e.clientX - container.left
-  const mouseY = e.clientY - container.top
-
-  const relX = mouseX - imgRect.offsetLeft
-  const relY = mouseY - imgRect.offsetTop
-
-  if (
-    relX >= 0 &&
-    relX <= imgRect.width &&
-    relY >= 0 &&
-    relY <= imgRect.height
-  ) {
-    isMouseOnImage.value = true
-
-    const halfLens = props.lensSize / 2
-    let lensX = relX - halfLens
-    let lensY = relY - halfLens
-
-    lensX = Math.max(0, Math.min(lensX, imgRect.width - props.lensSize))
-    lensY = Math.max(0, Math.min(lensY, imgRect.height - props.lensSize))
-
-    lensPosition.x = lensX + imgRect.offsetLeft
-    lensPosition.y = lensY + imgRect.offsetTop
-
-    const ratio = magnification.value
-    bgPosition.x = (lensX + halfLens) * ratio - props.magnifierSize / 2
-    bgPosition.y = (lensY + halfLens) * ratio - props.magnifierSize / 2
-  } else {
-    isMouseOnImage.value = false
-  }
+function handleMouseMove(e) {
+  onMouseMove(e)
 }
 
-function setMagnification(m) {
-  magnification.value = m
-  emit('magnification-change', m)
-}
-
-function onResize() {
-  updateImageRect()
+function handleSetMagnification(m) {
+  setMagnification(m)
 }
 
 watch(
@@ -192,14 +178,6 @@ watch(
     updateImageRect()
   }
 )
-
-onMounted(() => {
-  window.addEventListener('resize', onResize)
-})
-
-onBeforeUnmount(() => {
-  window.removeEventListener('resize', onResize)
-})
 </script>
 
 <style scoped>
@@ -260,14 +238,12 @@ onBeforeUnmount(() => {
 }
 
 .magnified-view {
-  position: absolute;
-  top: 0;
-  right: calc(100% + 24px);
+  position: fixed;
   border-radius: 8px;
   background-repeat: no-repeat;
   background-color: #fff;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(102, 126, 234, 0.3);
-  z-index: 10;
+  z-index: 9999;
   overflow: hidden;
 }
 
