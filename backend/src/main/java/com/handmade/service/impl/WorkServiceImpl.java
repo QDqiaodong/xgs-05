@@ -114,13 +114,13 @@ public class WorkServiceImpl extends ServiceImpl<WorkMapper, Work> implements Wo
 
     @Override
     public boolean incrementViewCount(Long workId) {
-        return workMapper.incrementViewCountAtomic(workId) > 0;
+        return baseMapper.incrementViewCountAtomic(workId) > 0;
     }
 
     @Override
     public boolean incrementFavoriteCount(Long workId, boolean increment) {
         int delta = increment ? 1 : -1;
-        return workMapper.updateFavoriteCountAtomic(workId, delta) > 0;
+        return baseMapper.updateFavoriteCountAtomic(workId, delta) > 0;
     }
 
     @Override
