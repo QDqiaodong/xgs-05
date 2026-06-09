@@ -35,14 +35,14 @@
         <div class="work-gallery">
           <div class="main-image" @click="openViewer(activeImage)">
             <ImageMagnifier
-              :image-url="displayImages[activeImage] || 'https://picsum.photos/800/600'"
+              :image-url="mainImageUrl"
               alt="作品主图"
               :magnifications="[2, 3, 4]"
               :default-magnification="2"
             />
           </div>
-          <div class="thumbnails" v-if="displayImages.length > 0">
-            <img v-for="(img, index) in displayImages" :key="index" :src="img" :class="{ active: activeImage === index }" @click="activeImage = index; openViewer(index)" />
+          <div class="thumbnails" v-if="thumbnailImages.length > 0">
+            <img v-for="(img, index) in thumbnailImages" :key="index" :src="img" :class="{ active: activeImage === index }" @click="activeImage = index" />
           </div>
         </div>
         <div class="work-content">
@@ -129,9 +129,9 @@
       </div>
     </template>
     <ImageViewer
-      v-if="displayImages.length > 0"
+      v-if="viewerImages.length > 0"
       :visible="viewerVisible"
-      :images="displayImages"
+      :images="viewerImages"
       :initial-index="viewerInitialIndex"
       @close="closeViewer"
       @change="onViewerChange"
@@ -148,6 +148,7 @@ import StepBrowser from '../components/StepBrowser.vue'
 import ImageViewer from '../components/ImageViewer.vue'
 import ImageMagnifier from '../components/ImageMagnifier.vue'
 import request from '@/utils/request'
+import { getSmallImage, getMediumImage, getLargeImage, getOriginalImage } from '@/utils/image'
 
 const route = useRoute()
 const activeImage = ref(0)
@@ -177,6 +178,18 @@ const displayImages = computed(() => {
     return [cover]
   }
   return []
+})
+
+const mainImageUrl = computed(() => {
+  return getLargeImage(displayImages.value[activeImage.value]) || 'https://picsum.photos/800/600'
+})
+
+const thumbnailImages = computed(() => {
+  return displayImages.value.map(url => getSmallImage(url))
+})
+
+const viewerImages = computed(() => {
+  return displayImages.value.map(url => getOriginalImage(url))
 })
 
 const categoryName = computed(() => {

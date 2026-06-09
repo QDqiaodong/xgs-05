@@ -419,7 +419,7 @@ const rules = {
 async function uploadImageFile(file) {
   const formData = new FormData()
   formData.append('files', file.raw || file)
-  const res = await request.post('/file/upload', formData, {
+  const res = await request.post('/file/upload/thumbs', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   })
   if (res.code === 200 && res.data && res.data.length > 0) {
@@ -435,16 +435,16 @@ function handlePreview(file) {
 
 function handleRemove(file, uploadFiles) {
   fileList.value = uploadFiles
-  uploadedImages.value = uploadFiles.map(f => f.uploadedUrl || f.url).filter(Boolean)
+  uploadedImages.value = uploadFiles.map(f => f.uploadedUrl?.original || f.uploadedUrl || f.url).filter(Boolean)
 }
 
 async function handleChange(file, uploadFiles) {
   fileList.value = uploadFiles
   if (file.raw && !file.uploadedUrl) {
     try {
-      const url = await uploadImageFile(file)
-      file.uploadedUrl = url
-      uploadedImages.value = fileList.value.map(f => f.uploadedUrl || f.url).filter(Boolean)
+      const urlData = await uploadImageFile(file)
+      file.uploadedUrl = urlData
+      uploadedImages.value = fileList.value.map(f => f.uploadedUrl?.original || f.uploadedUrl || f.url).filter(Boolean)
       ElMessage.success('图片上传成功')
     } catch (e) {
       ElMessage.error('图片上传失败')
@@ -459,7 +459,8 @@ function handleStepPreview(file, stepIndex) {
 
 function handleStepRemove(file, uploadFiles, stepIndex) {
   form.steps[stepIndex].fileList = uploadFiles
-  form.steps[stepIndex].uploadedImage = uploadFiles[0]?.uploadedUrl || uploadFiles[0]?.url || ''
+  const uploaded = uploadFiles[0]?.uploadedUrl
+  form.steps[stepIndex].uploadedImage = uploaded?.original || uploaded || uploadFiles[0]?.url || ''
   if (!form.steps[stepIndex].uploadedImage) {
     form.steps[stepIndex].image = ''
   }
@@ -469,10 +470,10 @@ async function handleStepChange(file, uploadFiles, stepIndex) {
   form.steps[stepIndex].fileList = uploadFiles
   if (file.raw && !file.uploadedUrl) {
     try {
-      const url = await uploadImageFile(file)
-      file.uploadedUrl = url
-      form.steps[stepIndex].uploadedImage = url
-      form.steps[stepIndex].image = url
+      const urlData = await uploadImageFile(file)
+      file.uploadedUrl = urlData
+      form.steps[stepIndex].uploadedImage = urlData.original
+      form.steps[stepIndex].image = urlData.original
       ElMessage.success('步骤图片上传成功')
     } catch (e) {
       ElMessage.error('步骤图片上传失败')

@@ -32,7 +32,7 @@
           <div class="step-image-wrapper">
             <img
               v-if="currentStepData.image"
-              :src="currentStepData.image"
+              :src="currentStepImage"
               :alt="'步骤' + (currentStep + 1)"
               class="step-image"
             />
@@ -88,7 +88,7 @@
         @click="goToStep(index)"
       >
         <div class="thumbnail-image">
-          <img v-if="step.image" :src="step.image" :alt="'步骤' + (index + 1)" />
+          <img v-if="step.image" :src="getThumbnailImage(step)" :alt="'步骤' + (index + 1)" />
           <div v-else class="thumbnail-placeholder">
             <el-icon :size="24" color="#c0c4cc"><Picture /></el-icon>
           </div>
@@ -109,6 +109,7 @@
 import { ref, computed } from 'vue'
 import { ArrowLeft, ArrowRight, CircleCheck, Picture, Warning } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import { getSmallImage, getMediumImage } from '@/utils/image'
 
 const props = defineProps({
   steps: {
@@ -130,6 +131,14 @@ const progressPercent = computed(() => {
 const currentStepData = computed(() => {
   return props.steps[currentStep.value] || { title: '', description: '', image: '', tips: [] }
 })
+
+const currentStepImage = computed(() => {
+  return getMediumImage(currentStepData.value.image)
+})
+
+const getThumbnailImage = (step) => {
+  return getSmallImage(step.image)
+}
 
 function nextStep() {
   if (currentStep.value < props.steps.length - 1) {

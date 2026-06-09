@@ -6,7 +6,7 @@
       </div>
       <img
         ref="imgRef"
-        :src="work.coverImage || 'https://via.placeholder.com/300x400'"
+        :src="coverImageSmall"
         :alt="work.title"
         loading="lazy"
         :class="{ 'img-loaded': imgLoaded, 'img-hidden': !imgLoaded }"
@@ -50,6 +50,7 @@ import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { Star, StarFilled, View, PictureFilled } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import { getSmallImage } from '@/utils/image'
 
 const props = defineProps({
   work: {
@@ -115,6 +116,10 @@ const imageRatio = computed(() => {
     if (w && h) return `${w} / ${h}`
   }
   return '3 / 4'
+})
+
+const coverImageSmall = computed(() => {
+  return getSmallImage(props.work.coverImage) || 'https://via.placeholder.com/300x400'
 })
 
 function onImgLoad() {

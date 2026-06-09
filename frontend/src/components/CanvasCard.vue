@@ -20,7 +20,7 @@
     </div>
     <div class="card-image">
       <img
-        :src="item.work?.coverImage"
+        :src="coverImageSmall"
         :alt="item.work?.title"
         draggable="false"
         @load="onImgLoad"
@@ -46,6 +46,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Close } from '@element-plus/icons-vue'
 import { useInspirationStore } from '@/store/inspiration'
+import { getSmallImage } from '@/utils/image'
 
 const props = defineProps({
   item: {
@@ -82,6 +83,10 @@ const cardStyle = computed(() => ({
   height: `${props.item.height}px`,
   zIndex: props.isSelected ? 100 : 1
 }))
+
+const coverImageSmall = computed(() => {
+  return getSmallImage(props.item.work?.coverImage)
+})
 
 function onMouseDown(e) {
   if (e.button !== 0) return

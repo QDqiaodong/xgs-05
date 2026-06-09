@@ -3,7 +3,11 @@ package com.handmade.controller;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
+import com.handmade.service.ImageService;
+import com.handmade.service.ImageSize;
+import com.handmade.vo.ImageUrlVO;
 import com.handmade.vo.Result;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -20,10 +24,14 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/file")
 public class FileController {
+
+    @Autowired
+    private ImageService imageService;
 
     @Value("${file.upload.path}")
     private String uploadPath;
@@ -53,6 +61,24 @@ public class FileController {
             }
         }
         return Result.success(urls);
+    }
+
+    @PostMapping("/upload/thumbs")
+    public Result<List<ImageUrlVO>> uploadFilesWithThumbs(@RequestParam("files") MultipartFile[] files) throws IOException {
+        List<ImageUrlVO> result = new ArrayList<>();
+        String datePath = java.time.LocalDate.now().toString().replace("-", "/");
+        for (MultipartFile file : files) {
+            if (file.isEmpty()) {
+                continue;
+            }
+            String originalFilename = file.getOriginalFilename();
+            String suffix = FileUtil.getSuffix(originalFilename);
+            String baseName = IdUtil.simpleUUID() + "." + suffix;
+            Map<ImageSize, String> urlMap = imageService.generateThumbnails(
+                    file.getInputStream(), baseName, uploadPath, datePath, urlPrefix);
+            result.add(ImageUrlVO.fromMap(urlMap));
+        }
+        return Result.success(result);
     }
 
     private String uploadFile(MultipartFile file) throws IOException {
