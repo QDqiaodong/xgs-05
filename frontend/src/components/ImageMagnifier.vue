@@ -8,19 +8,25 @@
   >
     <div class="main-image-wrapper" ref="wrapperRef">
       <img
+        v-if="!imageError"
         :src="imageUrl"
         :alt="alt"
         class="main-image"
         ref="imageRef"
         @load="onImageLoad"
+        @error="onImageError"
         draggable="false"
       />
+      <div v-else class="image-error-placeholder">
+        <el-icon :size="64" color="#c0c4cc"><Picture /></el-icon>
+        <p>图片加载失败</p>
+      </div>
       <div
-        v-if="isHovering"
+        v-if="isHovering && !imageError"
         class="lens"
         :style="lensStyle"
       ></div>
-      <div class="magnifier-hint" :class="{ hidden: isHovering }">
+      <div v-if="!imageError" class="magnifier-hint" :class="{ hidden: isHovering }">
         <el-icon><ZoomIn /></el-icon>
         <span>悬停查看细节</span>
       </div>
@@ -30,7 +36,7 @@
   <Teleport to="body">
     <Transition name="magnifier-fade">
       <div
-        v-if="isHovering && showMagnifier"
+        v-if="isHovering && showMagnifier && !imageError"
         class="magnified-view"
         :style="magnifiedViewStyle"
       >
@@ -58,7 +64,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { ZoomIn, View } from '@element-plus/icons-vue'
+import { ZoomIn, View, Picture } from '@element-plus/icons-vue'
 import { useImageRect } from '@/composables/useImageRect'
 import { useMagnifier } from '@/composables/useMagnifier'
 
@@ -89,11 +95,12 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['magnification-change'])
+const emit = defineEmits(['magnification-change', 'error'])
 
 const containerRef = ref(null)
 const imageRef = ref(null)
 const wrapperRef = ref(null)
+const imageError = ref(false)
 
 const { imgRect, updateImageRect } = useImageRect(imageRef, containerRef)
 
@@ -152,10 +159,17 @@ const magnifiedViewStyle = computed(() => ({
 }))
 
 function onImageLoad() {
+  imageError.value = false
   updateImageRect()
 }
 
+function onImageError() {
+  imageError.value = true
+  emit('error')
+}
+
 function handleMouseEnter() {
+  if (imageError.value) return
   updateImageRect()
   onMouseEnter()
 }
@@ -165,6 +179,7 @@ function handleMouseLeave() {
 }
 
 function handleMouseMove(e) {
+  if (imageError.value) return
   onMouseMove(e)
 }
 
@@ -175,6 +190,7 @@ function handleSetMagnification(m) {
 watch(
   () => props.imageUrl,
   () => {
+    imageError.value = false
     updateImageRect()
   }
 )
@@ -200,6 +216,24 @@ watch(
   transition: transform 0.3s ease;
   user-select: none;
   -webkit-user-drag: none;
+}
+
+.image-error-placeholder {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: #f5f7fa;
+  color: #909399;
+  border-radius: 8px;
+}
+
+.image-error-placeholder p {
+  margin: 0;
+  font-size: 14px;
 }
 
 .image-magnifier-container:hover .main-image {

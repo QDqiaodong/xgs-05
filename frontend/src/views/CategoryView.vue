@@ -28,10 +28,11 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import WorkCard from '@/components/WorkCard.vue'
 
 const route = useRoute()
+const router = useRouter()
 const loading = ref(true)
 const loadingMore = ref(false)
 const hasMore = ref(true)
@@ -100,9 +101,23 @@ function loadMore() {
   }, 800)
 }
 
-watch(activeCategory, () => {
+watch(activeCategory, (newVal) => {
+  const routeCategoryId = parseInt(route.params.categoryId) || 1
+  if (newVal !== routeCategoryId) {
+    router.replace({ name: 'Category', params: { categoryId: newVal } })
+  }
   loadWorks()
 })
+
+watch(
+  () => route.params.categoryId,
+  (newCategoryId) => {
+    const parsedId = parseInt(newCategoryId) || 1
+    if (parsedId !== activeCategory.value) {
+      activeCategory.value = parsedId
+    }
+  }
+)
 
 onMounted(() => {
   const categoryId = parseInt(route.params.categoryId) || 1

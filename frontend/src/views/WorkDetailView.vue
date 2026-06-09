@@ -39,10 +39,16 @@
               alt="作品主图"
               :magnifications="[2, 3, 4]"
               :default-magnification="2"
+              @error="handleMainImageError"
             />
           </div>
           <div class="thumbnails" v-if="thumbnailImages.length > 0">
-            <img v-for="(img, index) in thumbnailImages" :key="index" :src="img" :class="{ active: activeImage === index }" @click="activeImage = index" />
+            <div v-for="(img, index) in thumbnailImages" :key="index" class="thumbnail-wrapper" :class="{ active: activeImage === index }" @click="handleThumbnailClick(index)">
+              <img v-if="!imageErrors[index]" :src="img" @error="handleThumbnailError(index)" />
+              <div v-else class="thumbnail-error">
+                <el-icon :size="24" color="#c0c4cc"><Picture /></el-icon>
+              </div>
+            </div>
           </div>
         </div>
         <div class="work-content">
@@ -142,7 +148,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { Star, StarFilled, Share, Document, List, ArrowRight, VideoPlay, ArrowLeft, Warning, ZoomIn } from '@element-plus/icons-vue'
+import { Star, StarFilled, Share, Document, List, ArrowRight, VideoPlay, ArrowLeft, Warning, ZoomIn, Picture } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import StepBrowser from '../components/StepBrowser.vue'
 import ImageViewer from '../components/ImageViewer.vue'
@@ -164,6 +170,7 @@ const work = ref({})
 const author = ref({})
 const workImages = ref([])
 const steps = ref([])
+const imageErrors = ref({})
 
 const displayImages = computed(() => {
   const cover = work.value.coverImage
@@ -209,6 +216,8 @@ function parseJSON(str, fallback) {
 async function fetchWorkDetail() {
   loading.value = true
   error.value = false
+  imageErrors.value = {}
+  activeImage.value = 0
   try {
     const workId = route.params.id
     const res = await request.get(`/work/${workId}`)
@@ -274,6 +283,18 @@ function onViewerChange(index) {
   activeImage.value = index
 }
 
+function handleThumbnailClick(index) {
+  activeImage.value = index
+}
+
+function handleThumbnailError(index) {
+  imageErrors.value = { ...imageErrors.value, [index]: true }
+}
+
+function handleMainImageError() {
+  imageErrors.value = { ...imageErrors.value, [activeImage.value]: true }
+}
+
 onMounted(() => {
   fetchWorkDetail()
 })
@@ -315,18 +336,35 @@ onMounted(() => {
   gap: 12px;
 }
 
-.thumbnails img {
+.thumbnail-wrapper {
   width: 80px;
   height: 80px;
-  object-fit: cover;
   border-radius: 4px;
   cursor: pointer;
   border: 2px solid transparent;
   transition: border-color 0.3s;
+  overflow: hidden;
+  background: #f5f7fa;
 }
 
-.thumbnails img.active {
+.thumbnail-wrapper.active {
   border-color: #667eea;
+}
+
+.thumbnail-wrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.thumbnail-error {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f7fa;
 }
 
 .work-header h1 {

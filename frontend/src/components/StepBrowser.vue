@@ -31,14 +31,16 @@
         <div class="step-card-content">
           <div class="step-image-wrapper">
             <img
-              v-if="currentStepData.image"
+              v-if="currentStepData.image && !currentStepImageError"
               :src="currentStepImage"
               :alt="'步骤' + (currentStep + 1)"
               class="step-image"
+              @error="handleCurrentStepImageError"
+              @load="handleCurrentStepImageLoad"
             />
             <div v-else class="step-image-placeholder">
               <el-icon :size="80" color="#c0c4cc"><Picture /></el-icon>
-              <p>暂无步骤图片</p>
+              <p>{{ currentStepImageError ? '图片加载失败' : '暂无步骤图片' }}</p>
             </div>
           </div>
           <div class="step-description">
@@ -88,7 +90,7 @@
         @click="goToStep(index)"
       >
         <div class="thumbnail-image">
-          <img v-if="step.image" :src="getThumbnailImage(step)" :alt="'步骤' + (index + 1)" />
+          <img v-if="step.image && !thumbnailErrors[index]" :src="getThumbnailImage(step)" :alt="'步骤' + (index + 1)" @error="handleThumbnailError(index)" />
           <div v-else class="thumbnail-placeholder">
             <el-icon :size="24" color="#c0c4cc"><Picture /></el-icon>
           </div>
@@ -122,6 +124,8 @@ const props = defineProps({
 const emit = defineEmits(['finish'])
 
 const currentStep = ref(0)
+const thumbnailErrors = ref({})
+const currentStepImageError = ref(false)
 
 const progressPercent = computed(() => {
   if (!props.steps.length) return 0
@@ -143,19 +147,34 @@ const getThumbnailImage = (step) => {
 function nextStep() {
   if (currentStep.value < props.steps.length - 1) {
     currentStep.value++
+    currentStepImageError.value = false
   }
 }
 
 function prevStep() {
   if (currentStep.value > 0) {
     currentStep.value--
+    currentStepImageError.value = false
   }
 }
 
 function goToStep(index) {
   if (index >= 0 && index < props.steps.length) {
     currentStep.value = index
+    currentStepImageError.value = false
   }
+}
+
+function handleCurrentStepImageError() {
+  currentStepImageError.value = true
+}
+
+function handleCurrentStepImageLoad() {
+  currentStepImageError.value = false
+}
+
+function handleThumbnailError(index) {
+  thumbnailErrors.value = { ...thumbnailErrors.value, [index]: true }
 }
 
 function onFinish() {

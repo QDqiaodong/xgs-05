@@ -33,12 +33,18 @@
             }"
           >
             <img
+              v-if="!viewerImageError"
               :src="images[currentIndex]"
               alt="作品图片"
               class="viewer-image"
               draggable="false"
               @load="onImageLoad"
+              @error="onViewerImageError"
             />
+            <div v-else class="viewer-image-error">
+              <el-icon :size="80" color="#888"><Warning /></el-icon>
+              <p>图片加载失败</p>
+            </div>
           </div>
         </div>
 
@@ -68,7 +74,10 @@
               :class="{ active: index === currentIndex }"
               @click.stop="goToImage(index)"
             >
-              <img :src="img" :alt="'缩略图' + (index + 1)" />
+              <img v-if="!viewerThumbErrors[index]" :src="img" :alt="'缩略图' + (index + 1)" @error="handleViewerThumbError(index)" />
+              <div v-else class="viewer-thumb-error">
+                <el-icon :size="20" color="#888"><Warning /></el-icon>
+              </div>
             </div>
           </div>
           <div class="viewer-actions">
@@ -116,6 +125,8 @@ const scale = ref(1)
 const translateX = ref(0)
 const translateY = ref(0)
 const isAnimating = ref(false)
+const viewerImageError = ref(false)
+const viewerThumbErrors = ref({})
 
 const MIN_SCALE = 0.5
 const MAX_SCALE = 4
@@ -162,6 +173,7 @@ function goToImage(index) {
   isAnimating.value = true
   currentIndex.value = index
   resetTransform()
+  viewerImageError.value = false
   emit('change', index)
   setTimeout(() => {
     isAnimating.value = false
@@ -350,13 +362,24 @@ function onKeyDown(e) {
 }
 
 function onImageLoad() {
+  viewerImageError.value = false
   resetTransform()
+}
+
+function onViewerImageError() {
+  viewerImageError.value = true
+}
+
+function handleViewerThumbError(index) {
+  viewerThumbErrors.value = { ...viewerThumbErrors.value, [index]: true }
 }
 
 watch(() => props.visible, (val) => {
   if (val) {
     currentIndex.value = props.initialIndex
     resetTransform()
+    viewerImageError.value = false
+    viewerThumbErrors.value = {}
     document.body.style.overflow = 'hidden'
   } else {
     document.body.style.overflow = ''
@@ -480,6 +503,31 @@ onBeforeUnmount(() => {
   display: block;
   pointer-events: none;
   -webkit-user-drag: none;
+}
+
+.viewer-image-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  color: #aaa;
+  min-width: 300px;
+  min-height: 300px;
+}
+
+.viewer-image-error p {
+  margin: 0;
+  font-size: 16px;
+}
+
+.viewer-thumb-error {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .viewer-nav {
