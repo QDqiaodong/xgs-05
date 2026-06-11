@@ -32,7 +32,7 @@
             <el-icon><View /></el-icon>
             {{ work.viewCount }}
           </span>
-          <span class="stat-item" @click.stop="toggleFavorite">
+          <span class="stat-item" @click.stop="handleFavoriteClick">
             <el-icon :class="{ 'is-favorite': isFavorited }">
               <StarFilled v-if="isFavorited" />
               <Star v-else />
@@ -42,6 +42,11 @@
         </div>
       </div>
     </div>
+    <FolderSelectorDialog
+      v-model="folderSelectorVisible"
+      :work-id="work.id"
+      @change="onFolderChange"
+    />
   </div>
 </template>
 
@@ -53,6 +58,7 @@ import { ElMessage } from 'element-plus'
 import { getSmallImage } from '@/utils/image'
 import { useFavoriteStore } from '@/store/favorite'
 import { useUserStore } from '@/store/user'
+import FolderSelectorDialog from './FolderSelectorDialog.vue'
 
 const props = defineProps({
   work: {
@@ -99,6 +105,7 @@ const imgLoaded = ref(false)
 const imgError = ref(false)
 const imgRef = ref(null)
 const workLocal = ref({ ...props.work })
+const folderSelectorVisible = ref(false)
 
 const isFavorited = computed(() => {
   favoriteStore.version
@@ -149,18 +156,17 @@ function goToDetail() {
   router.push(`/work/${props.work.id}`)
 }
 
-async function toggleFavorite() {
+async function handleFavoriteClick() {
   if (!userStore.isLoggedIn) {
     ElMessage.warning('请先登录')
     return
   }
   if (!props.work.id) return
-  const result = await favoriteStore.toggleFavorite(props.work.id)
-  if (result.success) {
-    ElMessage.success(result.message)
-  } else if (result.message) {
-    ElMessage.error(result.message)
-  }
+  folderSelectorVisible.value = true
+}
+
+function onFolderChange() {
+  favoriteStore.touchVersion()
 }
 
 onMounted(async () => {

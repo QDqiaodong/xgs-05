@@ -110,7 +110,7 @@
             </el-button>
           </div>
           <div class="action-buttons">
-            <el-button :type="isFavorited ? 'danger' : 'primary'" :icon="isFavorited ? StarFilled : Star" @click="toggleFavorite">
+            <el-button :type="isFavorited ? 'danger' : 'primary'" :icon="isFavorited ? StarFilled : Star" @click="handleFavoriteClick">
               {{ isFavorited ? '已收藏' : '收藏作品' }}
             </el-button>
             <el-button type="success" :icon="Share">分享</el-button>
@@ -142,6 +142,11 @@
       @close="closeViewer"
       @change="onViewerChange"
     />
+    <FolderSelectorDialog
+      v-model="folderSelectorVisible"
+      :work-id="work.id"
+      @change="onFolderChange"
+    />
   </div>
 </template>
 
@@ -153,6 +158,7 @@ import { ElMessage } from 'element-plus'
 import StepBrowser from '../components/StepBrowser.vue'
 import ImageViewer from '../components/ImageViewer.vue'
 import ImageMagnifier from '../components/ImageMagnifier.vue'
+import FolderSelectorDialog from '../components/FolderSelectorDialog.vue'
 import request from '@/utils/request'
 import { getSmallImage, getMediumImage, getLargeImage, getOriginalImage } from '@/utils/image'
 import { useFavoriteStore } from '@/store/favorite'
@@ -168,6 +174,7 @@ const error = ref(false)
 const errorMsg = ref('')
 const viewerVisible = ref(false)
 const viewerInitialIndex = ref(0)
+const folderSelectorVisible = ref(false)
 
 const isFavorited = computed(() => {
   favoriteStore.version
@@ -258,28 +265,19 @@ async function fetchAuthorInfo(userId) {
   }
 }
 
-async function toggleFavorite() {
+async function handleFavoriteClick() {
   if (!userStore.isLoggedIn) {
     ElMessage.warning('请先登录')
     return
   }
   if (!work.value.id) return
-  const wasFavorited = favoriteStore.isFavorited(work.value.id)
-  const optimisticCount = wasFavorited
-    ? Math.max(0, (work.value.favoriteCount || 0) - 1)
-    : (work.value.favoriteCount || 0) + 1
-  work.value.favoriteCount = optimisticCount
+  folderSelectorVisible.value = true
+}
 
-  const result = await favoriteStore.toggleFavorite(work.value.id)
-  if (result.success) {
-    ElMessage.success(result.message)
-  } else {
-    work.value.favoriteCount = wasFavorited
-      ? (work.value.favoriteCount || 0) + 1
-      : Math.max(0, (work.value.favoriteCount || 0) - 1)
-    if (result.message) {
-      ElMessage.error(result.message)
-    }
+function onFolderChange() {
+  favoriteStore.touchVersion()
+  if (work.value.id) {
+    syncFavoriteStatus()
   }
 }
 
