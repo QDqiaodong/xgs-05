@@ -22,14 +22,17 @@ public class HotScoreCalculator {
     private static final double NEW_BOOST_FACTOR = 1.5;
     private static final double LOG_BASE = 2.0;
 
-    public double calculate(Work work) {
+    private static final long SCORE_SCALE = 1_000_000L;
+
+    public long calculate(Work work) {
         if (work == null) {
-            return 0.0;
+            return 0L;
         }
 
         LocalDateTime referenceTime = getReferenceTime(work);
+        LocalDateTime alignedNow = LocalDateTime.now().withMinute(0).withSecond(0).withNano(0);
         long days = referenceTime != null
-                ? Duration.between(referenceTime, LocalDateTime.now()).toDays()
+                ? Duration.between(referenceTime, alignedNow).toDays()
                 : 365L;
 
         double viewScore = calculateViewScore(work, days);
@@ -43,7 +46,7 @@ public class HotScoreCalculator {
             totalScore *= boostRatio;
         }
 
-        return totalScore;
+        return (long) (totalScore * SCORE_SCALE);
     }
 
     private double calculateViewScore(Work work, long days) {

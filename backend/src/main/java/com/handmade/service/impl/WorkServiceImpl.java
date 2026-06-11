@@ -69,17 +69,20 @@ public class WorkServiceImpl extends ServiceImpl<WorkMapper, Work> implements Wo
         LambdaQueryWrapper<Work> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Work::getStatus, 1);
         wrapper.orderByDesc(Work::getCreateTime);
+        wrapper.orderByDesc(Work::getId);
         wrapper.last("LIMIT " + HOT_CANDIDATE_LIMIT);
         return this.list(wrapper);
     }
 
     private List<Work> sortByHotScore(List<Work> works) {
         return works.stream()
-                .sorted(Comparator.comparingDouble(this::getHotScore).reversed())
+                .sorted(Comparator.comparingLong(this::getHotScore)
+                        .reversed()
+                        .thenComparing(Work::getId, Comparator.reverseOrder()))
                 .collect(Collectors.toList());
     }
 
-    private double getHotScore(Work work) {
+    private long getHotScore(Work work) {
         return hotScoreCalculator.calculate(work);
     }
 
