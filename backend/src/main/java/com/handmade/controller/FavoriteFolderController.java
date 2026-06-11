@@ -136,7 +136,6 @@ public class FavoriteFolderController {
                     favoriteService.updateById(fav);
                 } else {
                     favoriteService.removeById(fav.getId());
-                    workService.incrementFavoriteCount(fav.getWorkId(), false);
                 }
             }
         }

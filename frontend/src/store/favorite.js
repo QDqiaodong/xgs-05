@@ -35,7 +35,6 @@ export const useFavoriteStore = defineStore('favorite', () => {
       if (res.code === 200 && res.data) {
         folders.value = res.data
         foldersLoaded.value = true
-        touchVersion()
       }
     } catch (e) {
       console.warn('加载收藏夹列表失败', e)
@@ -55,6 +54,7 @@ export const useFavoriteStore = defineStore('favorite', () => {
       })
       if (res.code === 200 && res.data) {
         await loadFolders(true)
+        touchVersion()
         return res.data
       }
     } catch (e) {
@@ -74,6 +74,7 @@ export const useFavoriteStore = defineStore('favorite', () => {
       })
       if (res.code === 200) {
         await loadFolders(true)
+        touchVersion()
         return true
       }
     } catch (e) {
