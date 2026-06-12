@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS sys_user (
     avatar VARCHAR(255) COMMENT '头像',
     bio VARCHAR(500) COMMENT '个人简介',
     email VARCHAR(100) COMMENT '邮箱',
+    role TINYINT DEFAULT 1 COMMENT '用户角色 1:普通用户 2:管理员',
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     deleted TINYINT DEFAULT 0 COMMENT '删除标记 0:未删除 1:已删除',
@@ -90,8 +91,8 @@ INSERT INTO category (name, description, icon, sort) VALUES
 ('布艺', '布料的魔法，匠心的传承', '🧵', 3),
 ('木艺', '天然木材，手工雕刻', '🪵', 4);
 
-INSERT INTO sys_user (username, password, nickname, avatar, bio) VALUES
-('admin', 'admin123', '管理员', 'https://via.placeholder.com/100', '平台管理员'),
-('xiaoshouqiao', '123456', '小手巧', 'https://via.placeholder.com/100', '专注手工编织5年，热爱所有美好的事物'),
-('taoran', '123456', '陶然', 'https://via.placeholder.com/100', '陶艺爱好者，享受泥土带来的宁静'),
-('bubu', '123456', '布布', 'https://via.placeholder.com/100', '布艺达人，喜欢制作各种可爱的小物件');
+INSERT INTO sys_user (username, password, nickname, avatar, bio, role) VALUES
+('admin', 'admin123', '管理员', 'https://via.placeholder.com/100', '平台管理员', 2),
+('xiaoshouqiao', '123456', '小手巧', 'https://via.placeholder.com/100', '专注手工编织5年，热爱所有美好的事物', 1),
+('taoran', '123456', '陶然', 'https://via.placeholder.com/100', '陶艺爱好者，享受泥土带来的宁静', 1),
+('bubu', '123456', '布布', 'https://via.placeholder.com/100', '布艺达人，喜欢制作各种可爱的小物件', 1);

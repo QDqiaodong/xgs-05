@@ -18,9 +18,35 @@
         <span>加载失败</span>
       </div>
       <div v-if="work.isHot" class="hot-tag">热门</div>
-      <div v-if="work.difficultyLevel" :class="difficultyClass">
+      <div v-if="workLocal.difficultyLevel" :class="difficultyClass">
         {{ difficultyText }}
       </div>
+      <el-dropdown
+        v-if="userStore.isAdmin"
+        trigger="click"
+        class="admin-difficulty-dropdown"
+        @command="(val) => handleSetDifficulty(val, $event)"
+      >
+        <div class="admin-difficulty-btn" @click.stop>
+          <el-icon :size="14"><Setting /></el-icon>
+        </div>
+        <template #dropdown>
+          <el-dropdown-menu>
+            <el-dropdown-item :command="1">
+              <span class="diff-item diff-1">● 入门</span>
+            </el-dropdown-item>
+            <el-dropdown-item :command="2">
+              <span class="diff-item diff-2">● 进阶</span>
+            </el-dropdown-item>
+            <el-dropdown-item :command="3">
+              <span class="diff-item diff-3">● 大师</span>
+            </el-dropdown-item>
+            <el-dropdown-item :command="0" divided>
+              <span>取消评定</span>
+            </el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
     </div>
     <div class="work-info">
       <h3 class="work-title">{{ work.title }}</h3>
@@ -56,9 +82,10 @@
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
-import { Star, StarFilled, View, PictureFilled } from '@element-plus/icons-vue'
+import { Star, StarFilled, View, PictureFilled, Setting } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { getSmallImage } from '@/utils/image'
+import { setWorkDifficulty } from '@/utils/request'
 import { useFavoriteStore } from '@/store/favorite'
 import { useUserStore } from '@/store/user'
 import FolderSelectorDialog from './FolderSelectorDialog.vue'
@@ -149,11 +176,11 @@ const coverImageSmall = computed(() => {
 
 const difficultyText = computed(() => {
   const map = { 1: '入门', 2: '进阶', 3: '大师' }
-  return map[props.work.difficultyLevel] || ''
+  return map[workLocal.value.difficultyLevel] || ''
 })
 
 const difficultyClass = computed(() => {
-  return ['difficulty-tag', 'difficulty-' + props.work.difficultyLevel]
+  return ['difficulty-tag', 'difficulty-' + workLocal.value.difficultyLevel]
 })
 
 function onImgLoad() {
@@ -179,6 +206,23 @@ async function handleFavoriteClick() {
 
 function onFolderChange() {
   favoriteStore.touchVersion()
+}
+
+async function handleSetDifficulty(level, event) {
+  if (!props.work.id) return
+  const difficulty = level === 0 ? null : level
+  try {
+    const res = await setWorkDifficulty(props.work.id, difficulty)
+    if (res.code === 200) {
+      workLocal.value.difficultyLevel = difficulty
+      ElMessage.success('难度等级设置成功')
+      sessionStorage.setItem('workListRefreshKey', Date.now().toString())
+    } else {
+      ElMessage.error(res.message || '设置失败')
+    }
+  } catch (e) {
+    console.error('设置难度失败', e)
+  }
 }
 
 onMounted(async () => {
@@ -328,6 +372,49 @@ onMounted(async () => {
 
 .difficulty-tag.difficulty-3 {
   background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+}
+
+.admin-difficulty-dropdown {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+}
+
+.admin-difficulty-btn {
+  width: 28px;
+  height: 28px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s;
+  color: #667eea;
+}
+
+.admin-difficulty-btn:hover {
+  background: #667eea;
+  color: #fff;
+  transform: scale(1.1);
+}
+
+.diff-item {
+  font-weight: 500;
+}
+
+.diff-1 {
+  color: #11998e;
+}
+
+.diff-2 {
+  color: #f2994a;
+}
+
+.diff-3 {
+  color: #eb3349;
 }
 
 .work-info {

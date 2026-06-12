@@ -1,7 +1,10 @@
 package com.handmade.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.handmade.context.UserContext;
+import com.handmade.entity.User;
 import com.handmade.entity.Work;
+import com.handmade.service.UserService;
 import com.handmade.service.WorkService;
 import com.handmade.vo.Result;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +20,9 @@ public class WorkController {
     @Autowired
     private WorkService workService;
 
+    @Autowired
+    private UserService userService;
+
     @GetMapping("/list")
     public Result<IPage<Work>> getWorkList(
             @RequestParam(defaultValue = "1") Integer page,
@@ -31,6 +37,14 @@ public class WorkController {
     public Result<Boolean> setDifficultyLevel(
             @PathVariable Long id,
             @RequestParam Integer difficultyLevel) {
+        Long currentUserId = UserContext.getCurrentUserId();
+        if (currentUserId == null) {
+            return Result.error("请先登录");
+        }
+        User currentUser = userService.getById(currentUserId);
+        if (currentUser == null || currentUser.getRole() == null || currentUser.getRole() != 2) {
+            return Result.error("无权限执行此操作");
+        }
         return Result.success(workService.setDifficultyLevel(id, difficultyLevel));
     }
 

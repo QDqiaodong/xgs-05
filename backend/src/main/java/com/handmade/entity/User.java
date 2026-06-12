@@ -22,6 +22,8 @@ public class User {
 
     private String email;
 
+    private Integer role;
+
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
 

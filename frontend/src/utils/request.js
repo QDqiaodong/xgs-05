@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
+import { useUserStore } from '@/store/user'
 
 const request = axios.create({
   baseURL: '/api',
@@ -8,10 +9,21 @@ const request = axios.create({
 
 request.interceptors.request.use(
   (config) => {
-    const userInfo = localStorage.getItem('userInfo')
-    if (userInfo) {
-      const user = JSON.parse(userInfo)
-      config.headers['Authorization'] = `Bearer ${user.token}`
+    const userStore = useUserStore()
+    if (userStore.token) {
+      config.headers['Authorization'] = `Bearer ${userStore.token}`
+    } else {
+      const userInfo = localStorage.getItem('userInfo')
+      if (userInfo) {
+        try {
+          const data = JSON.parse(userInfo)
+          if (data.token) {
+            config.headers['Authorization'] = `Bearer ${data.token}`
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
     }
     return config
   },
@@ -29,5 +41,11 @@ request.interceptors.response.use(
     return Promise.reject(error)
   }
 )
+
+export function setWorkDifficulty(workId, difficultyLevel) {
+  return request.put(`/work/${workId}/difficulty`, null, {
+    params: { difficultyLevel }
+  })
+}
 
 export default request

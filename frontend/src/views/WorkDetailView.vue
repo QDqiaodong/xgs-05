@@ -56,9 +56,36 @@
             <h1>{{ work.title }}</h1>
             <div class="work-tags">
               <el-tag type="success">{{ categoryName }}</el-tag>
-              <el-tag v-if="work.difficultyLevel" :type="difficultyTagType" :effect="'light'">
-                难度: {{ difficultyText }}
-              </el-tag>
+              <div class="difficulty-tag-wrapper">
+                <el-tag v-if="work.difficultyLevel" :type="difficultyTagType" :effect="'light'">
+                  难度: {{ difficultyText }}
+                </el-tag>
+                <el-tag v-else type="info" :effect="'light'">
+                  难度: 未评定
+                </el-tag>
+                <el-dropdown v-if="userStore.isAdmin" trigger="click" @command="handleSetDifficulty">
+                  <el-button type="primary" link size="small" class="difficulty-edit-btn">
+                    <el-icon><Edit /></el-icon>
+                    评定
+                  </el-button>
+                  <template #dropdown>
+                    <el-dropdown-menu>
+                      <el-dropdown-item :command="1">
+                        <span class="diff-item diff-1">● 入门</span>
+                      </el-dropdown-item>
+                      <el-dropdown-item :command="2">
+                        <span class="diff-item diff-2">● 进阶</span>
+                      </el-dropdown-item>
+                      <el-dropdown-item :command="3">
+                        <span class="diff-item diff-3">● 大师</span>
+                      </el-dropdown-item>
+                      <el-dropdown-item :command="0" divided>
+                        <span>取消评定</span>
+                      </el-dropdown-item>
+                    </el-dropdown-menu>
+                  </template>
+                </el-dropdown>
+              </div>
               <el-tag v-if="work.productionCycle" type="info">制作周期: {{ work.productionCycle }}</el-tag>
             </div>
           </div>
@@ -174,14 +201,14 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { Star, StarFilled, Share, Document, List, ArrowRight, VideoPlay, ArrowLeft, Warning, ZoomIn, Picture, MagicStick } from '@element-plus/icons-vue'
+import { Star, StarFilled, Share, Document, List, ArrowRight, VideoPlay, ArrowLeft, Warning, ZoomIn, Picture, MagicStick, Edit } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import StepBrowser from '../components/StepBrowser.vue'
 import ImageViewer from '../components/ImageViewer.vue'
 import ImageMagnifier from '../components/ImageMagnifier.vue'
 import FolderSelectorDialog from '../components/FolderSelectorDialog.vue'
 import WorkCard from '../components/WorkCard.vue'
-import request from '@/utils/request'
+import request, { setWorkDifficulty } from '@/utils/request'
 import { getSmallImage, getMediumImage, getLargeImage, getOriginalImage } from '@/utils/image'
 import { useFavoriteStore } from '@/store/favorite'
 import { useUserStore } from '@/store/user'
@@ -384,6 +411,23 @@ function handleMainImageError() {
   imageErrors.value = { ...imageErrors.value, [activeImage.value]: true }
 }
 
+async function handleSetDifficulty(level) {
+  if (!work.value.id) return
+  const difficulty = level === 0 ? null : level
+  try {
+    const res = await setWorkDifficulty(work.value.id, difficulty)
+    if (res.code === 200) {
+      work.value.difficultyLevel = difficulty
+      ElMessage.success('难度等级设置成功')
+      sessionStorage.setItem('workListRefreshKey', Date.now().toString())
+    } else {
+      ElMessage.error(res.message || '设置失败')
+    }
+  } catch (e) {
+    console.error('设置难度失败', e)
+  }
+}
+
 onMounted(async () => {
   await fetchWorkDetail()
   if (userStore.isLoggedIn) {
@@ -475,6 +519,35 @@ watch(() => userStore.isLoggedIn, (val) => {
   display: flex;
   gap: 12px;
   margin-bottom: 24px;
+  align-items: center;
+}
+
+.difficulty-tag-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.difficulty-edit-btn {
+  padding: 0 8px;
+  height: 24px;
+  font-size: 12px;
+}
+
+.diff-item {
+  font-weight: 500;
+}
+
+.diff-1 {
+  color: #11998e;
+}
+
+.diff-2 {
+  color: #f2994a;
+}
+
+.diff-3 {
+  color: #eb3349;
 }
 
 .author-section {

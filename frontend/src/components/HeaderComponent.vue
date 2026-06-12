@@ -42,7 +42,7 @@
       </el-form>
       <template #footer>
         <el-button @click="showLogin = false">取消</el-button>
-        <el-button type="primary" @click="handleLogin">登录</el-button>
+        <el-button type="primary" :loading="loginLoading" @click="handleLogin">登录</el-button>
       </template>
     </el-dialog>
   </header>
@@ -52,6 +52,7 @@
 import { ref } from 'vue'
 import { useUserStore } from '@/store/user'
 import { ElMessage } from 'element-plus'
+import request from '@/utils/request'
 
 const userStore = useUserStore()
 const showLogin = ref(false)
@@ -59,6 +60,7 @@ const loginForm = ref({
   username: '',
   password: ''
 })
+const loginLoading = ref(false)
 
 const categories = ref([
   { id: 1, name: '编织' },
@@ -67,16 +69,26 @@ const categories = ref([
   { id: 4, name: '木艺' }
 ])
 
-function handleLogin() {
-  if (loginForm.value.username && loginForm.value.password) {
-    userStore.setUser({
-      id: 1,
-      username: loginForm.value.username,
-      avatar: 'https://via.placeholder.com/40',
-      token: 'mock-token-123456'
-    })
-    showLogin.value = false
-    ElMessage.success('登录成功')
+async function handleLogin() {
+  if (!loginForm.value.username || !loginForm.value.password) {
+    ElMessage.warning('请输入用户名和密码')
+    return
+  }
+  loginLoading.value = true
+  try {
+    const res = await request.post('/user/login', loginForm.value)
+    if (res.code === 200 && res.data) {
+      userStore.setUser(res.data)
+      showLogin.value = false
+      ElMessage.success('登录成功')
+      loginForm.value = { username: '', password: '' }
+    } else {
+      ElMessage.error(res.message || '登录失败')
+    }
+  } catch (e) {
+    console.error('登录失败', e)
+  } finally {
+    loginLoading.value = false
   }
 }
 

@@ -65,8 +65,16 @@ public class WorkServiceImpl extends ServiceImpl<WorkMapper, Work> implements Wo
         }
         Work work = new Work();
         work.setId(workId);
-        work.setDifficultyLevel(difficultyLevel);
-        return this.updateById(work);
+        if (difficultyLevel == null) {
+            work.setDifficultyLevel(null);
+        } else {
+            work.setDifficultyLevel(difficultyLevel);
+        }
+        boolean result = this.updateById(work);
+        if (result) {
+            clearWorkCaches();
+        }
+        return result;
     }
 
     @Override
