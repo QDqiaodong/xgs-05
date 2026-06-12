@@ -70,6 +70,16 @@ public class WorkServiceImpl extends ServiceImpl<WorkMapper, Work> implements Wo
     }
 
     @Override
+    public void clearWorkCaches() {
+        redisTemplate.delete(HOT_WORKS_KEY);
+        redisTemplate.delete(MATERIALS_CACHE_KEY);
+        Set<String> recommendKeys = redisTemplate.keys(RECOMMEND_CACHE_KEY + "*");
+        if (recommendKeys != null && !recommendKeys.isEmpty()) {
+            redisTemplate.delete(recommendKeys);
+        }
+    }
+
+    @Override
     public IPage<Work> getHotWorks(Integer page, Integer size) {
         List<Work> hotWorks = (List<Work>) redisTemplate.opsForValue().get(HOT_WORKS_KEY);
         if (hotWorks != null && !hotWorks.isEmpty()) {
