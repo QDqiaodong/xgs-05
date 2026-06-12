@@ -23,4 +23,6 @@ public interface WorkService extends IService<Work> {
     List<Work> getRecommendedWorks(Long workId, Integer limit);
 
     boolean setDifficultyLevel(Long workId, Integer difficultyLevel);
+
+    void clearWorkCaches();
 }

@@ -80,17 +80,26 @@ public class WorkController {
         work.setStatus(1);
         work.setIsHot(0);
         workService.save(work);
+        workService.clearWorkCaches();
         return Result.success(work.getId());
     }
 
     @PutMapping("/{id}")
     public Result<Boolean> updateWork(@PathVariable Long id, @RequestBody Work work) {
         work.setId(id);
-        return Result.success(workService.updateById(work));
+        boolean result = workService.updateById(work);
+        if (result) {
+            workService.clearWorkCaches();
+        }
+        return Result.success(result);
     }
 
     @DeleteMapping("/{id}")
     public Result<Boolean> deleteWork(@PathVariable Long id) {
-        return Result.success(workService.removeById(id));
+        boolean result = workService.removeById(id);
+        if (result) {
+            workService.clearWorkCaches();
+        }
+        return Result.success(result);
     }
 }

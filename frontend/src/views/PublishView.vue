@@ -576,6 +576,8 @@ async function handleSubmit() {
 
       const res = await request.post('/work', payload)
       if (res.code === 200) {
+        const currentKey = parseInt(sessionStorage.getItem('workListRefreshKey') || '0')
+        sessionStorage.setItem('workListRefreshKey', String(currentKey + 1))
         ElMessage.success('作品发布成功！')
         setTimeout(() => {
           router.push(`/work/${res.data}`)

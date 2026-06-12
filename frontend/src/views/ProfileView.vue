@@ -63,11 +63,17 @@
       </div>
 
       <div v-show="activeTab === 'works'">
-        <div v-if="works.length > 0" :class="gridContainerClass">
+        <div v-if="loading" class="loading">
+          <el-skeleton :rows="5" animated />
+        </div>
+        <div v-else-if="works.length > 0" :class="gridContainerClass">
           <WorkCard v-for="work in works" :key="work.id" :work="work" :layout="activeLayout" />
         </div>
-        <div v-if="works.length === 0" class="empty">
+        <div v-else class="empty">
           <el-empty description="暂无作品" />
+        </div>
+        <div v-if="hasMore && works.length > 0" class="load-more">
+          <el-button :loading="loadingMore" @click="loadMoreWorks">加载更多</el-button>
         </div>
       </div>
 
@@ -84,7 +90,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useUserStore } from '@/store/user'
 import { useFavoriteStore } from '@/store/favorite'
@@ -98,6 +104,12 @@ const userStore = useUserStore()
 const favoriteStore = useFavoriteStore()
 const activeTab = ref('works')
 const activeLayout = ref(localStorage.getItem('profileLayout') || 'masonry')
+const loading = ref(true)
+const loadingMore = ref(false)
+const hasMore = ref(true)
+const page = ref(1)
+const pageSize = 10
+const userId = ref(null)
 
 const gridContainerClass = computed(() => {
   return `works-container works-${activeLayout.value}`
@@ -109,32 +121,111 @@ watch(activeLayout, (newVal) => {
 
 const user = ref({
   id: 1,
-  username: '小手巧',
-  avatar: 'https://via.placeholder.com/120',
-  bio: '专注手工编织5年，热爱所有美好的事物'
+  username: '手作达人',
+  nickname: '手作达人',
+  avatar: '',
+  bio: '热爱手工创作的艺术家'
 })
 
 const stats = ref({
-  works: 28,
-  followers: 1256,
-  following: 89,
-  totalViews: 56789
+  works: 0,
+  followers: 0,
+  following: 0,
+  totalViews: 0
 })
 
 const isOwner = computed(() => {
   return userStore.userInfo?.id === user.value.id
 })
 
-const works = ref([
-  { id: 1, title: '手工编织毛衣', description: '温暖的羊毛手工编织，耗时一个月完成', coverImage: 'https://picsum.photos/300/400?random=20', authorId: 1, authorName: '小手巧', authorAvatar: 'https://via.placeholder.com/24', viewCount: 1256, favoriteCount: 89, isHot: true, categoryId: 1 },
-  { id: 2, title: '毛线围巾', description: '柔软的马海毛线，温暖整个冬天', coverImage: 'https://picsum.photos/300/420?random=21', authorId: 1, authorName: '小手巧', authorAvatar: 'https://via.placeholder.com/24', viewCount: 1890, favoriteCount: 123, isHot: true, categoryId: 1 },
-  { id: 3, title: '针织手套', description: '冬日必备，温暖双手', coverImage: 'https://picsum.photos/300/350?random=22', authorId: 1, authorName: '小手巧', authorAvatar: 'https://via.placeholder.com/24', viewCount: 567, favoriteCount: 45, isHot: false, categoryId: 1 },
-  { id: 4, title: '婴儿毛毯', description: '给宝宝最柔软的呵护', coverImage: 'https://picsum.photos/300/380?random=23', authorId: 1, authorName: '小手巧', authorAvatar: 'https://via.placeholder.com/24', viewCount: 2341, favoriteCount: 156, isHot: true, categoryId: 1 },
-  { id: 5, title: '手工编织帽', description: '可爱的贝雷帽，冬日时尚单品', coverImage: 'https://picsum.photos/300/360?random=24', authorId: 1, authorName: '小手巧', authorAvatar: 'https://via.placeholder.com/24', viewCount: 892, favoriteCount: 67, isHot: false, categoryId: 1 },
-  { id: 6, title: '钩针杯垫套装', description: '精致的杯垫，为家居增添温馨', coverImage: 'https://picsum.photos/300/300?random=25', authorId: 1, authorName: '小手巧', authorAvatar: 'https://via.placeholder.com/24', viewCount: 456, favoriteCount: 38, isHot: false, categoryId: 1 },
-  { id: 7, title: '毛线玩偶', description: '可爱的小兔子玩偶，送给孩子的礼物', coverImage: 'https://picsum.photos/300/450?random=26', authorId: 1, authorName: '小手巧', authorAvatar: 'https://via.placeholder.com/24', viewCount: 1678, favoriteCount: 134, isHot: true, categoryId: 1 },
-  { id: 8, title: '手工编织包包', description: '时尚的草编包，夏日必备单品', coverImage: 'https://picsum.photos/300/390?random=27', authorId: 1, authorName: '小手巧', authorAvatar: 'https://via.placeholder.com/24', viewCount: 2134, favoriteCount: 178, isHot: true, categoryId: 1 }
-])
+const works = ref([])
+
+function transformWork(item) {
+  return {
+    id: item.id,
+    title: item.title,
+    description: item.description,
+    coverImage: item.coverImage,
+    categoryId: item.categoryId,
+    viewCount: item.viewCount || 0,
+    favoriteCount: item.favoriteCount || 0,
+    likeCount: item.likeCount || 0,
+    isHot: item.isHot,
+    difficultyLevel: item.difficultyLevel,
+    authorId: item.userId,
+    authorName: user.value.nickname || user.value.username || '手作达人',
+    authorAvatar: user.value.avatar || ''
+  }
+}
+
+async function loadUserInfo(uid) {
+  try {
+    const res = await request.get(`/user/${uid}`)
+    if (res.code === 200 && res.data) {
+      user.value = res.data
+    }
+  } catch (e) {
+    console.warn('加载用户信息失败', e)
+  }
+}
+
+async function loadUserWorks(reset = false) {
+  if (!userId.value) return
+  if (reset) {
+    page.value = 1
+    works.value = []
+    hasMore.value = true
+  }
+  if (page.value === 1) {
+    loading.value = true
+  }
+  try {
+    const res = await request.get(`/work/user/${userId.value}`, {
+      params: { page: page.value, size: pageSize }
+    })
+    if (res.code === 200 && res.data) {
+      const records = res.data.records || []
+      if (page.value === 1) {
+        works.value = records.map(transformWork)
+      } else {
+        works.value = [...works.value, ...records.map(transformWork)]
+      }
+      hasMore.value = works.value.length < res.data.total
+      stats.value.works = res.data.total || 0
+      const totalViews = records.reduce((sum, w) => sum + (w.viewCount || 0), 0)
+      if (page.value === 1) {
+        stats.value.totalViews = totalViews
+      }
+    } else {
+      works.value = []
+    }
+  } catch (e) {
+    console.error('加载用户作品失败', e)
+  } finally {
+    loading.value = false
+  }
+}
+
+async function loadMoreWorks() {
+  if (loadingMore.value || !hasMore.value) return
+  loadingMore.value = true
+  try {
+    page.value++
+    const res = await request.get(`/work/user/${userId.value}`, {
+      params: { page: page.value, size: pageSize }
+    })
+    if (res.code === 200 && res.data) {
+      const records = res.data.records || []
+      works.value = [...works.value, ...records.map(transformWork)]
+      hasMore.value = works.value.length < res.data.total
+    }
+  } catch (e) {
+    console.error('加载更多作品失败', e)
+    page.value--
+  } finally {
+    loadingMore.value = false
+  }
+}
 
 const favorites = ref([])
 const favoritesLoading = ref(false)
@@ -171,11 +262,44 @@ async function loadProfileFavorites() {
   }
 }
 
+let lastRefreshKey = 0
+
+function checkNeedRefresh() {
+  const refreshKey = parseInt(sessionStorage.getItem('workListRefreshKey') || '0')
+  if (refreshKey > lastRefreshKey) {
+    lastRefreshKey = refreshKey
+    loadUserWorks(true)
+  }
+}
+
+async function initProfile() {
+  const uid = parseInt(route.params.userId) || userStore.userInfo?.id
+  if (!uid) {
+    ElMessage.warning('用户不存在')
+    return
+  }
+  userId.value = uid
+  user.value.id = uid
+  await Promise.all([
+    loadUserInfo(uid),
+    loadUserWorks(true)
+  ])
+}
+
 onMounted(() => {
-  console.log('User ID:', route.params.userId)
+  initProfile()
   if (activeTab.value === 'favorites') {
     loadProfileFavorites()
   }
+  window.addEventListener('focus', checkNeedRefresh)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('focus', checkNeedRefresh)
+})
+
+watch(() => route.params.userId, () => {
+  initProfile()
 })
 
 watch(activeTab, (val) => {
@@ -327,6 +451,15 @@ watch(() => userStore.isLoggedIn, (val) => {
 
 .empty {
   padding: 60px 0;
+}
+
+.loading {
+  padding: 40px 0;
+}
+
+.load-more {
+  text-align: center;
+  padding: 30px 0;
 }
 
 .works-masonry {
