@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 public interface WorkService extends IService<Work> {
-    IPage<Work> getWorkList(Integer page, Integer size, Long categoryId, String keyword);
+    IPage<Work> getWorkList(Integer page, Integer size, Long categoryId, String keyword, Integer difficultyLevel);
 
     IPage<Work> getHotWorks(Integer page, Integer size);
 
@@ -21,4 +21,6 @@ public interface WorkService extends IService<Work> {
     List<Map<String, Object>> suggestMaterials(String keyword, Integer limit);
 
     List<Work> getRecommendedWorks(Long workId, Integer limit);
+
+    boolean setDifficultyLevel(Long workId, Integer difficultyLevel);
 }

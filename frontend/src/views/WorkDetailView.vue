@@ -56,6 +56,9 @@
             <h1>{{ work.title }}</h1>
             <div class="work-tags">
               <el-tag type="success">{{ categoryName }}</el-tag>
+              <el-tag v-if="work.difficultyLevel" :type="difficultyTagType" :effect="'light'">
+                难度: {{ difficultyText }}
+              </el-tag>
               <el-tag v-if="work.productionCycle" type="info">制作周期: {{ work.productionCycle }}</el-tag>
             </div>
           </div>
@@ -239,6 +242,16 @@ const categoryName = computed(() => {
   return categories[work.value.categoryId] || '其他'
 })
 
+const difficultyText = computed(() => {
+  const map = { 1: '入门', 2: '进阶', 3: '大师' }
+  return map[work.value.difficultyLevel] || ''
+})
+
+const difficultyTagType = computed(() => {
+  const map = { 1: 'success', 2: 'warning', 3: 'danger' }
+  return map[work.value.difficultyLevel] || 'info'
+})
+
 function parseJSON(str, fallback) {
   if (!str) return fallback
   try {
@@ -298,6 +311,7 @@ function transformWork(item) {
     favoriteCount: item.favoriteCount || 0,
     likeCount: item.likeCount || 0,
     isHot: item.isHot,
+    difficultyLevel: item.difficultyLevel,
     authorId: item.userId,
     authorName: '手作达人',
     authorAvatar: ''

@@ -18,6 +18,9 @@
         <span>加载失败</span>
       </div>
       <div v-if="work.isHot" class="hot-tag">热门</div>
+      <div v-if="work.difficultyLevel" :class="difficultyClass">
+        {{ difficultyText }}
+      </div>
     </div>
     <div class="work-info">
       <h3 class="work-title">{{ work.title }}</h3>
@@ -142,6 +145,15 @@ const imageRatio = computed(() => {
 
 const coverImageSmall = computed(() => {
   return getSmallImage(props.work.coverImage) || 'https://via.placeholder.com/300x400'
+})
+
+const difficultyText = computed(() => {
+  const map = { 1: '入门', 2: '进阶', 3: '大师' }
+  return map[props.work.difficultyLevel] || ''
+})
+
+const difficultyClass = computed(() => {
+  return ['difficulty-tag', 'difficulty-' + props.work.difficultyLevel]
 })
 
 function onImgLoad() {
@@ -292,6 +304,30 @@ onMounted(async () => {
   font-size: 12px;
   font-weight: 500;
   z-index: 1;
+}
+
+.difficulty-tag {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  color: #fff;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  z-index: 1;
+}
+
+.difficulty-tag.difficulty-1 {
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+}
+
+.difficulty-tag.difficulty-2 {
+  background: linear-gradient(135deg, #f2994a 0%, #f2c94c 100%);
+}
+
+.difficulty-tag.difficulty-3 {
+  background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
 }
 
 .work-info {

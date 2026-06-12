@@ -42,7 +42,7 @@ public class WorkServiceImpl extends ServiceImpl<WorkMapper, Work> implements Wo
     private WorkSimilarityCalculator workSimilarityCalculator;
 
     @Override
-    public IPage<Work> getWorkList(Integer page, Integer size, Long categoryId, String keyword) {
+    public IPage<Work> getWorkList(Integer page, Integer size, Long categoryId, String keyword, Integer difficultyLevel) {
         LambdaQueryWrapper<Work> wrapper = new LambdaQueryWrapper<>();
         if (categoryId != null) {
             wrapper.eq(Work::getCategoryId, categoryId);
@@ -50,9 +50,23 @@ public class WorkServiceImpl extends ServiceImpl<WorkMapper, Work> implements Wo
         if (StringUtils.hasText(keyword)) {
             wrapper.like(Work::getTitle, keyword).or().like(Work::getDescription, keyword);
         }
+        if (difficultyLevel != null) {
+            wrapper.eq(Work::getDifficultyLevel, difficultyLevel);
+        }
         wrapper.eq(Work::getStatus, 1);
         wrapper.orderByDesc(Work::getCreateTime);
         return this.page(new Page<>(page, size), wrapper);
+    }
+
+    @Override
+    public boolean setDifficultyLevel(Long workId, Integer difficultyLevel) {
+        if (difficultyLevel != null && (difficultyLevel < 1 || difficultyLevel > 3)) {
+            return false;
+        }
+        Work work = new Work();
+        work.setId(workId);
+        work.setDifficultyLevel(difficultyLevel);
+        return this.updateById(work);
     }
 
     @Override

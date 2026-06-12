@@ -13,6 +13,22 @@
       </el-radio-group>
     </div>
 
+    <div class="difficulty-filters">
+      <span class="filter-label">难度筛选：</span>
+      <el-radio-group v-model="activeDifficulty" size="default">
+        <el-radio-button :label="null">全部</el-radio-button>
+        <el-radio-button :label="1">
+          <span class="diff-btn diff-1">● 入门</span>
+        </el-radio-button>
+        <el-radio-button :label="2">
+          <span class="diff-btn diff-2">● 进阶</span>
+        </el-radio-button>
+        <el-radio-button :label="3">
+          <span class="diff-btn diff-3">● 大师</span>
+        </el-radio-button>
+      </el-radio-group>
+    </div>
+
     <div v-if="loading" class="loading">
       <el-skeleton :rows="5" animated />
     </div>
@@ -38,6 +54,7 @@ const loadingMore = ref(false)
 const hasMore = ref(true)
 const page = ref(1)
 const activeCategory = ref(1)
+const activeDifficulty = ref(null)
 
 const categories = ref([
   { id: 1, name: '编织', description: '一针一线，编织美好生活' },
@@ -54,24 +71,29 @@ const works = ref([])
 
 const mockWorks = {
   1: [
-    { id: 1, title: '手工编织毛衣', description: '温暖的羊毛手工编织，耗时一个月完成', coverImage: 'https://picsum.photos/300/400?random=40', authorId: 1, authorName: '小手巧', authorAvatar: 'https://via.placeholder.com/24', viewCount: 1256, favoriteCount: 89, isHot: true, categoryId: 1 },
-    { id: 2, title: '毛线围巾', description: '柔软的马海毛线，温暖整个冬天', coverImage: 'https://picsum.photos/300/420?random=41', authorId: 1, authorName: '小手巧', authorAvatar: 'https://via.placeholder.com/24', viewCount: 1890, favoriteCount: 123, isHot: true, categoryId: 1 },
-    { id: 3, title: '针织手套', description: '冬日必备，温暖双手', coverImage: 'https://picsum.photos/300/350?random=42', authorId: 1, authorName: '小手巧', authorAvatar: 'https://via.placeholder.com/24', viewCount: 567, favoriteCount: 45, isHot: false, categoryId: 1 },
-    { id: 4, title: '婴儿毛毯', description: '给宝宝最柔软的呵护', coverImage: 'https://picsum.photos/300/380?random=43', authorId: 1, authorName: '小手巧', authorAvatar: 'https://via.placeholder.com/24', viewCount: 2341, favoriteCount: 156, isHot: true, categoryId: 1 }
+    { id: 1, title: '手工编织毛衣', description: '温暖的羊毛手工编织，耗时一个月完成', coverImage: 'https://picsum.photos/300/400?random=40', authorId: 1, authorName: '小手巧', authorAvatar: 'https://via.placeholder.com/24', viewCount: 1256, favoriteCount: 89, isHot: true, categoryId: 1, difficultyLevel: 3 },
+    { id: 2, title: '毛线围巾', description: '柔软的马海毛线，温暖整个冬天', coverImage: 'https://picsum.photos/300/420?random=41', authorId: 1, authorName: '小手巧', authorAvatar: 'https://via.placeholder.com/24', viewCount: 1890, favoriteCount: 123, isHot: true, categoryId: 1, difficultyLevel: 1 },
+    { id: 3, title: '针织手套', description: '冬日必备，温暖双手', coverImage: 'https://picsum.photos/300/350?random=42', authorId: 1, authorName: '小手巧', authorAvatar: 'https://via.placeholder.com/24', viewCount: 567, favoriteCount: 45, isHot: false, categoryId: 1, difficultyLevel: 2 },
+    { id: 4, title: '婴儿毛毯', description: '给宝宝最柔软的呵护', coverImage: 'https://picsum.photos/300/380?random=43', authorId: 1, authorName: '小手巧', authorAvatar: 'https://via.placeholder.com/24', viewCount: 2341, favoriteCount: 156, isHot: true, categoryId: 1, difficultyLevel: 2 }
   ],
   2: [
-    { id: 5, title: '陶艺花瓶', description: '手工拉坯制作，釉色温润如玉', coverImage: 'https://picsum.photos/300/350?random=44', authorId: 2, authorName: '陶然', authorAvatar: 'https://via.placeholder.com/24', viewCount: 892, favoriteCount: 67, isHot: false, categoryId: 2 },
-    { id: 6, title: '手工茶具', description: '一套精美的手工茶具，品茗必备', coverImage: 'https://picsum.photos/300/360?random=45', authorId: 2, authorName: '陶然', authorAvatar: 'https://via.placeholder.com/24', viewCount: 1456, favoriteCount: 98, isHot: false, categoryId: 2 },
-    { id: 7, title: '陶土摆件', description: '可爱的小动物陶土摆件', coverImage: 'https://picsum.photos/300/400?random=46', authorId: 2, authorName: '陶然', authorAvatar: 'https://via.placeholder.com/24', viewCount: 756, favoriteCount: 43, isHot: false, categoryId: 2 }
+    { id: 5, title: '陶艺花瓶', description: '手工拉坯制作，釉色温润如玉', coverImage: 'https://picsum.photos/300/350?random=44', authorId: 2, authorName: '陶然', authorAvatar: 'https://via.placeholder.com/24', viewCount: 892, favoriteCount: 67, isHot: false, categoryId: 2, difficultyLevel: 3 },
+    { id: 6, title: '手工茶具', description: '一套精美的手工茶具，品茗必备', coverImage: 'https://picsum.photos/300/360?random=45', authorId: 2, authorName: '陶然', authorAvatar: 'https://via.placeholder.com/24', viewCount: 1456, favoriteCount: 98, isHot: false, categoryId: 2, difficultyLevel: 2 },
+    { id: 7, title: '陶土摆件', description: '可爱的小动物陶土摆件', coverImage: 'https://picsum.photos/300/400?random=46', authorId: 2, authorName: '陶然', authorAvatar: 'https://via.placeholder.com/24', viewCount: 756, favoriteCount: 43, isHot: false, categoryId: 2, difficultyLevel: 1 }
   ],
   3: [
-    { id: 8, title: '布艺玩偶套装', description: '可爱的小动物布艺玩偶，送给孩子的礼物', coverImage: 'https://picsum.photos/300/450?random=47', authorId: 3, authorName: '布布', authorAvatar: 'https://via.placeholder.com/24', viewCount: 2341, favoriteCount: 156, isHot: true, categoryId: 3 },
-    { id: 9, title: '刺绣手帕', description: '精致的苏绣工艺，传统与现代结合', coverImage: 'https://picsum.photos/300/390?random=48', authorId: 3, authorName: '布布', authorAvatar: 'https://via.placeholder.com/24', viewCount: 789, favoriteCount: 56, isHot: false, categoryId: 3 }
+    { id: 8, title: '布艺玩偶套装', description: '可爱的小动物布艺玩偶，送给孩子的礼物', coverImage: 'https://picsum.photos/300/450?random=47', authorId: 3, authorName: '布布', authorAvatar: 'https://via.placeholder.com/24', viewCount: 2341, favoriteCount: 156, isHot: true, categoryId: 3, difficultyLevel: 2 },
+    { id: 9, title: '刺绣手帕', description: '精致的苏绣工艺，传统与现代结合', coverImage: 'https://picsum.photos/300/390?random=48', authorId: 3, authorName: '布布', authorAvatar: 'https://via.placeholder.com/24', viewCount: 789, favoriteCount: 56, isHot: false, categoryId: 3, difficultyLevel: 3 }
   ],
   4: [
-    { id: 10, title: '原木摆件', description: '天然木材手工雕刻，保留原木质感', coverImage: 'https://picsum.photos/300/380?random=49', authorId: 4, authorName: '木工匠', authorAvatar: 'https://via.placeholder.com/24', viewCount: 567, favoriteCount: 34, isHot: false, categoryId: 4 },
-    { id: 11, title: '木质首饰盒', description: '胡桃木制作，精美的收纳盒', coverImage: 'https://picsum.photos/300/340?random=50', authorId: 4, authorName: '木工匠', authorAvatar: 'https://via.placeholder.com/24', viewCount: 678, favoriteCount: 45, isHot: false, categoryId: 4 }
+    { id: 10, title: '原木摆件', description: '天然木材手工雕刻，保留原木质感', coverImage: 'https://picsum.photos/300/380?random=49', authorId: 4, authorName: '木工匠', authorAvatar: 'https://via.placeholder.com/24', viewCount: 567, favoriteCount: 34, isHot: false, categoryId: 4, difficultyLevel: 1 },
+    { id: 11, title: '木质首饰盒', description: '胡桃木制作，精美的收纳盒', coverImage: 'https://picsum.photos/300/340?random=50', authorId: 4, authorName: '木工匠', authorAvatar: 'https://via.placeholder.com/24', viewCount: 678, favoriteCount: 45, isHot: false, categoryId: 4, difficultyLevel: 2 }
   ]
+}
+
+const filterWorksByDifficulty = (works) => {
+  if (activeDifficulty.value === null) return works
+  return works.filter(w => w.difficultyLevel === activeDifficulty.value)
 }
 
 function loadWorks() {
@@ -79,7 +101,8 @@ function loadWorks() {
   page.value = 1
   hasMore.value = true
   setTimeout(() => {
-    works.value = mockWorks[activeCategory.value] || []
+    const allWorks = mockWorks[activeCategory.value] || []
+    works.value = filterWorksByDifficulty(allWorks)
     loading.value = false
   }, 500)
 }
@@ -92,7 +115,7 @@ function loadMore() {
       id: w.id + works.value.length,
       coverImage: `https://picsum.photos/300/${350 + Math.random() * 100}?random=${100 + works.value.length + i}`
     }))
-    works.value = [...works.value, ...newWorks]
+    works.value = [...works.value, ...filterWorksByDifficulty(newWorks)]
     page.value++
     if (page.value >= 3) {
       hasMore.value = false
@@ -106,6 +129,10 @@ watch(activeCategory, (newVal) => {
   if (newVal !== routeCategoryId) {
     router.replace({ name: 'Category', params: { categoryId: newVal } })
   }
+  loadWorks()
+})
+
+watch(activeDifficulty, () => {
   loadWorks()
 })
 
@@ -150,7 +177,36 @@ onMounted(() => {
 .category-filters {
   display: flex;
   justify-content: center;
+  margin-bottom: 20px;
+}
+
+.difficulty-filters {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
   margin-bottom: 30px;
+}
+
+.filter-label {
+  font-size: 14px;
+  color: #666;
+}
+
+.diff-btn {
+  font-weight: 500;
+}
+
+.diff-btn.diff-1 {
+  color: #11998e;
+}
+
+.diff-btn.diff-2 {
+  color: #f2994a;
+}
+
+.diff-btn.diff-3 {
+  color: #eb3349;
 }
 
 .loading {

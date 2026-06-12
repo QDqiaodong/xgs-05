@@ -40,6 +40,8 @@ public class Work {
 
     private Integer isHot;
 
+    private Integer difficultyLevel;
+
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
 

@@ -22,8 +22,16 @@ public class WorkController {
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "10") Integer size,
             @RequestParam(required = false) Long categoryId,
-            @RequestParam(required = false) String keyword) {
-        return Result.success(workService.getWorkList(page, size, categoryId, keyword));
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer difficultyLevel) {
+        return Result.success(workService.getWorkList(page, size, categoryId, keyword, difficultyLevel));
+    }
+
+    @PutMapping("/{id}/difficulty")
+    public Result<Boolean> setDifficultyLevel(
+            @PathVariable Long id,
+            @RequestParam Integer difficultyLevel) {
+        return Result.success(workService.setDifficultyLevel(id, difficultyLevel));
     }
 
     @GetMapping("/hot")
