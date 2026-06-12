@@ -95,6 +95,9 @@ public class WorkController {
         work.setIsHot(0);
         workService.save(work);
         workService.clearWorkCaches();
+        if (work.getUserId() != null) {
+            userService.updateCreatorStats(work.getUserId());
+        }
         return Result.success(work.getId());
     }
 
@@ -110,9 +113,14 @@ public class WorkController {
 
     @DeleteMapping("/{id}")
     public Result<Boolean> deleteWork(@PathVariable Long id) {
+        Work work = workService.getById(id);
+        Long userId = work != null ? work.getUserId() : null;
         boolean result = workService.removeById(id);
         if (result) {
             workService.clearWorkCaches();
+            if (userId != null) {
+                userService.updateCreatorStats(userId);
+            }
         }
         return Result.success(result);
     }

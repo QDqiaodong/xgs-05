@@ -54,7 +54,10 @@
       <div class="work-meta">
         <router-link :to="`/profile/${work.authorId}`" class="author" @click.stop>
           <img :src="work.authorAvatar || 'https://via.placeholder.com/24'" alt="author" />
-          <span>{{ work.authorName }}</span>
+          <div class="author-info-inline">
+            <span class="author-name">{{ work.authorName }}</span>
+            <CreatorLevelBadge v-if="work.authorLevel" :level="work.authorLevel" size="small" :show-name="false" />
+          </div>
         </router-link>
         <div class="stats">
           <span class="stat-item">
@@ -89,6 +92,7 @@ import { setWorkDifficulty } from '@/utils/request'
 import { useFavoriteStore } from '@/store/favorite'
 import { useUserStore } from '@/store/user'
 import FolderSelectorDialog from './FolderSelectorDialog.vue'
+import CreatorLevelBadge from './CreatorLevelBadge.vue'
 
 const props = defineProps({
   work: {
@@ -460,6 +464,17 @@ onMounted(async () => {
   width: 24px;
   height: 24px;
   border-radius: 50%;
+}
+
+.author-info-inline {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.author-name {
+  font-size: 13px;
+  color: #666;
 }
 
 .stats {

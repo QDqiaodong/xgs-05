@@ -6,10 +6,12 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.handmade.entity.Work;
 import com.handmade.mapper.WorkMapper;
+import com.handmade.service.UserService;
 import com.handmade.service.WorkService;
 import com.handmade.strategy.HotScoreCalculator;
 import com.handmade.strategy.WorkSimilarityCalculator;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -40,6 +42,10 @@ public class WorkServiceImpl extends ServiceImpl<WorkMapper, Work> implements Wo
 
     @Autowired
     private WorkSimilarityCalculator workSimilarityCalculator;
+
+    @Autowired
+    @Lazy
+    private UserService userService;
 
     @Override
     public IPage<Work> getWorkList(Integer page, Integer size, Long categoryId, String keyword, Integer difficultyLevel) {
@@ -156,13 +162,27 @@ public class WorkServiceImpl extends ServiceImpl<WorkMapper, Work> implements Wo
 
     @Override
     public boolean incrementViewCount(Long workId) {
-        return baseMapper.incrementViewCountAtomic(workId) > 0;
+        boolean result = baseMapper.incrementViewCountAtomic(workId) > 0;
+        if (result) {
+            Work work = this.getById(workId);
+            if (work != null && work.getUserId() != null) {
+                userService.updateCreatorStats(work.getUserId());
+            }
+        }
+        return result;
     }
 
     @Override
     public boolean incrementFavoriteCount(Long workId, boolean increment) {
         int delta = increment ? 1 : -1;
-        return baseMapper.updateFavoriteCountAtomic(workId, delta) > 0;
+        boolean result = baseMapper.updateFavoriteCountAtomic(workId, delta) > 0;
+        if (result) {
+            Work work = this.getById(workId);
+            if (work != null && work.getUserId() != null) {
+                userService.updateCreatorStats(work.getUserId());
+            }
+        }
+        return result;
     }
 
     @Override

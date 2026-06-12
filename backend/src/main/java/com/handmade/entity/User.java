@@ -24,6 +24,16 @@ public class User {
 
     private Integer role;
 
+    private Integer creatorLevel;
+
+    private Integer totalWorkCount;
+
+    private Integer totalViewCount;
+
+    private Integer totalFavoriteCount;
+
+    private Integer totalLikeCount;
+
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
 

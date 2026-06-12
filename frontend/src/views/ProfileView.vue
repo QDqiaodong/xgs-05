@@ -4,24 +4,42 @@
       <div class="profile-info">
         <img :src="user.avatar || 'https://via.placeholder.com/120'" alt="avatar" class="avatar" />
         <div class="info">
-          <h1>{{ user.username }}</h1>
+          <div class="username-row">
+            <h1>{{ user.nickname || user.username }}</h1>
+            <CreatorLevelBadge v-if="user.creatorLevel" :level="user.creatorLevel" size="medium" />
+          </div>
           <p class="bio">{{ user.bio || '热爱手工创作的艺术家' }}</p>
+          <div class="level-progress" v-if="levelInfo.score !== undefined">
+            <div class="level-info">
+              <span class="level-name">{{ levelInfo.levelName }}</span>
+              <span class="level-score">{{ levelInfo.score }} 分</span>
+            </div>
+            <el-progress
+              :percentage="levelProgress"
+              :color="levelGradient"
+              :stroke-width="8"
+              :show-text="false"
+            />
+            <div class="level-next" v-if="levelInfo.nextLevelName">
+              距离 {{ levelInfo.nextLevelName }} 还需 {{ levelInfo.nextLevelScore - levelInfo.score }} 分
+            </div>
+          </div>
           <div class="user-stats">
             <div class="stat">
               <span class="stat-value">{{ stats.works }}</span>
               <span class="stat-label">作品</span>
             </div>
             <div class="stat">
-              <span class="stat-value">{{ stats.followers }}</span>
-              <span class="stat-label">粉丝</span>
-            </div>
-            <div class="stat">
-              <span class="stat-value">{{ stats.following }}</span>
-              <span class="stat-label">关注</span>
-            </div>
-            <div class="stat">
               <span class="stat-value">{{ stats.totalViews }}</span>
               <span class="stat-label">总浏览</span>
+            </div>
+            <div class="stat">
+              <span class="stat-value">{{ stats.totalFavorites }}</span>
+              <span class="stat-label">总收藏</span>
+            </div>
+            <div class="stat">
+              <span class="stat-value">{{ stats.totalLikes }}</span>
+              <span class="stat-label">总获赞</span>
             </div>
           </div>
         </div>
@@ -96,7 +114,9 @@ import { useUserStore } from '@/store/user'
 import { useFavoriteStore } from '@/store/favorite'
 import { Grid, Menu, List } from '@element-plus/icons-vue'
 import WorkCard from '@/components/WorkCard.vue'
+import CreatorLevelBadge from '@/components/CreatorLevelBadge.vue'
 import request from '@/utils/request'
+import { getLevelGradient, calculateLevelProgress } from '@/utils/creatorLevel'
 import { ElMessage } from 'element-plus'
 
 const route = useRoute()
@@ -131,7 +151,22 @@ const stats = ref({
   works: 0,
   followers: 0,
   following: 0,
-  totalViews: 0
+  totalViews: 0,
+  totalFavorites: 0,
+  totalLikes: 0
+})
+
+const levelInfo = ref({})
+
+const levelProgress = computed(() => {
+  if (levelInfo.value.score === undefined || !user.value.creatorLevel) {
+    return 0
+  }
+  return calculateLevelProgress(levelInfo.value.score, user.value.creatorLevel)
+})
+
+const levelGradient = computed(() => {
+  return getLevelGradient(user.value.creatorLevel || 1)
 })
 
 const isOwner = computed(() => {
@@ -154,7 +189,8 @@ function transformWork(item) {
     difficultyLevel: item.difficultyLevel,
     authorId: item.userId,
     authorName: user.value.nickname || user.value.username || '手作达人',
-    authorAvatar: user.value.avatar || ''
+    authorAvatar: user.value.avatar || '',
+    authorLevel: user.value.creatorLevel || 1
   }
 }
 
@@ -163,6 +199,16 @@ async function loadUserInfo(uid) {
     const res = await request.get(`/user/${uid}`)
     if (res.code === 200 && res.data) {
       user.value = res.data
+      stats.value.totalFavorites = res.data.totalFavoriteCount || 0
+      stats.value.totalLikes = res.data.totalLikeCount || 0
+    }
+    const levelRes = await request.get(`/user/${uid}/level`)
+    if (levelRes.code === 200 && levelRes.data) {
+      levelInfo.value = levelRes.data
+      stats.value.works = levelRes.data.totalWorkCount || 0
+      stats.value.totalViews = levelRes.data.totalViewCount || 0
+      stats.value.totalFavorites = levelRes.data.totalFavoriteCount || 0
+      stats.value.totalLikes = levelRes.data.totalLikeCount || 0
     }
   } catch (e) {
     console.warn('加载用户信息失败', e)
@@ -355,10 +401,53 @@ watch(() => userStore.isLoggedIn, (val) => {
   margin-bottom: 12px;
 }
 
+.username-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.username-row h1 {
+  margin: 0;
+}
+
 .bio {
   font-size: 14px;
   color: #666;
+  margin-bottom: 16px;
+}
+
+.level-progress {
   margin-bottom: 20px;
+  padding: 12px 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.level-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.level-info .level-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+.level-info .level-score {
+  font-size: 13px;
+  color: #999;
+}
+
+.level-next {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #909399;
+  text-align: right;
 }
 
 .user-stats {

@@ -93,7 +93,10 @@
             <router-link :to="`/profile/${work.userId}`" class="author-info">
               <img :src="author.avatar || 'https://via.placeholder.com/60'" alt="作者头像" />
               <div>
-                <h3>{{ author.nickname || author.username || '手作达人' }}</h3>
+                <div class="author-name-row">
+                  <h3>{{ author.nickname || author.username || '手作达人' }}</h3>
+                  <CreatorLevelBadge v-if="author.creatorLevel" :level="author.creatorLevel" size="small" />
+                </div>
                 <p>{{ author.bio || '热爱手工创作的艺术家' }}</p>
               </div>
             </router-link>
@@ -208,6 +211,7 @@ import ImageViewer from '../components/ImageViewer.vue'
 import ImageMagnifier from '../components/ImageMagnifier.vue'
 import FolderSelectorDialog from '../components/FolderSelectorDialog.vue'
 import WorkCard from '../components/WorkCard.vue'
+import CreatorLevelBadge from '../components/CreatorLevelBadge.vue'
 import request, { setWorkDifficulty } from '@/utils/request'
 import { getSmallImage, getMediumImage, getLargeImage, getOriginalImage } from '@/utils/image'
 import { useFavoriteStore } from '@/store/favorite'
@@ -576,6 +580,17 @@ watch(() => userStore.isLoggedIn, (val) => {
   font-size: 16px;
   color: #333;
   margin-bottom: 4px;
+}
+
+.author-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.author-name-row h3 {
+  margin: 0;
 }
 
 .author-info p {

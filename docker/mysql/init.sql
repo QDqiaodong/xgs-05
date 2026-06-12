@@ -11,10 +11,16 @@ CREATE TABLE IF NOT EXISTS sys_user (
     bio VARCHAR(500) COMMENT '个人简介',
     email VARCHAR(100) COMMENT '邮箱',
     role TINYINT DEFAULT 1 COMMENT '用户角色 1:普通用户 2:管理员',
+    creator_level TINYINT DEFAULT 1 COMMENT '创作者等级 1:学徒 2:匠人 3:熟练匠人 4:工艺师 5:工艺大师',
+    total_work_count INT DEFAULT 0 COMMENT '作品总数',
+    total_view_count INT DEFAULT 0 COMMENT '总浏览量',
+    total_favorite_count INT DEFAULT 0 COMMENT '总收藏数',
+    total_like_count INT DEFAULT 0 COMMENT '总获赞数',
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     deleted TINYINT DEFAULT 0 COMMENT '删除标记 0:未删除 1:已删除',
-    INDEX idx_username (username)
+    INDEX idx_username (username),
+    INDEX idx_creator_level (creator_level)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
 
 CREATE TABLE IF NOT EXISTS category (
