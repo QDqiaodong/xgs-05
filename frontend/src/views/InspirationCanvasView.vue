@@ -71,6 +71,7 @@
       <div
         class="canvas-area"
         ref="canvasAreaRef"
+        :style="canvasStyle"
         @click="onCanvasClick"
         @dragover.prevent
         @drop="onCanvasDrop"
@@ -89,7 +90,7 @@
             v-for="item in store.activeBoard.items.filter(i => i.type === 'work')"
             :key="item.id"
             :item="item"
-            :is-selected="selectedItemId === item.id"
+            :is-selected="store.selectedItemId === item.id"
             :canvas-ref="canvasAreaRef"
             @select="selectItem"
           />
@@ -97,7 +98,8 @@
             v-for="item in store.activeBoard.items.filter(i => i.type === 'note')"
             :key="item.id"
             :item="item"
-            :is-selected="selectedItemId === item.id"
+            :is-selected="store.selectedItemId === item.id"
+            :canvas-ref="canvasAreaRef"
             @select="selectItem"
           />
         </template>
@@ -153,7 +155,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, nextTick, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   Plus,
@@ -175,10 +177,32 @@ const canvasContainerRef = ref(null)
 const canvasAreaRef = ref(null)
 const renameInputRef = ref(null)
 
-const selectedItemId = ref(null)
 const searchKeyword = ref('')
 const editingBoardId = ref(null)
 const renameValue = ref('')
+
+const MIN_CANVAS_WIDTH = 1000
+const MIN_CANVAS_HEIGHT = 800
+
+const canvasStyle = computed(() => {
+  if (!store.activeBoard?.items?.length) {
+    return {}
+  }
+  let maxRight = 0
+  let maxBottom = 0
+  store.activeBoard.items.forEach(item => {
+    const right = item.x + item.width
+    const bottom = item.y + item.height
+    if (right > maxRight) maxRight = right
+    if (bottom > maxBottom) maxBottom = bottom
+  })
+  const contentMinW = Math.max(maxRight + 50, MIN_CANVAS_WIDTH)
+  const contentMinH = Math.max(maxBottom + 50, MIN_CANVAS_HEIGHT)
+  return {
+    minWidth: `max(${contentMinW}px, 100%)`,
+    minHeight: `max(${contentMinH}px, 100%)`
+  }
+})
 
 const createBoardVisible = ref(false)
 const newBoardForm = ref({
@@ -210,13 +234,14 @@ const filteredWorks = computed(() => {
 })
 
 function onCanvasClick(e) {
-  if (e.target === canvasAreaRef.value) {
-    selectedItemId.value = null
+  const target = e.target
+  if (target === canvasAreaRef.value || target.classList?.contains('empty-canvas') || target.closest('.empty-canvas')) {
+    store.clearSelection()
   }
 }
 
 function selectItem(id) {
-  selectedItemId.value = id
+  store.setSelectedItem(id)
 }
 
 function onWorkDragStart(e, work) {

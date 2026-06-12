@@ -57,6 +57,10 @@ const props = defineProps({
   isSelected: {
     type: Boolean,
     default: false
+  },
+  canvasRef: {
+    type: Object,
+    default: null
   }
 })
 
@@ -90,6 +94,27 @@ const noteStyle = computed(() => ({
   zIndex: props.isSelected ? 100 : 1
 }))
 
+function getBounds() {
+  if (!props.canvasRef?.value) {
+    return { minX: 0, minY: 0, maxX: Infinity, maxY: Infinity }
+  }
+  const el = props.canvasRef.value
+  return {
+    minX: 0,
+    minY: 0,
+    maxX: Math.max(el.scrollWidth, el.clientWidth) - props.item.width,
+    maxY: Math.max(el.scrollHeight, el.clientHeight) - props.item.height
+  }
+}
+
+function clampPosition(x, y) {
+  const bounds = getBounds()
+  return {
+    x: Math.min(Math.max(bounds.minX, x), bounds.maxX),
+    y: Math.min(Math.max(bounds.minY, y), bounds.maxY)
+  }
+}
+
 function onMouseDown(e) {
   if (e.button !== 0) return
   emit('select', props.item.id)
@@ -111,9 +136,8 @@ function onMouseMove(e) {
   const dy = e.clientY - dragStart.value.y
   let newX = dragStart.value.itemX + dx
   let newY = dragStart.value.itemY + dy
-  newX = Math.max(0, newX)
-  newY = Math.max(0, newY)
-  store.updateItem(props.item.id, { x: newX, y: newY })
+  const clamped = clampPosition(newX, newY)
+  store.updateItem(props.item.id, { x: clamped.x, y: clamped.y })
 }
 
 function onMouseUp() {
@@ -138,8 +162,17 @@ function onResizeMove(e) {
   if (!isResizing.value) return
   const dx = e.clientX - resizeStart.value.x
   const dy = e.clientY - resizeStart.value.y
-  const newWidth = Math.max(MIN_WIDTH, resizeStart.value.width + dx)
-  const newHeight = Math.max(MIN_HEIGHT, resizeStart.value.height + dy)
+  let newWidth = Math.max(MIN_WIDTH, resizeStart.value.width + dx)
+  let newHeight = Math.max(MIN_HEIGHT, resizeStart.value.height + dy)
+  
+  if (props.canvasRef?.value) {
+    const el = props.canvasRef.value
+    const maxWidth = Math.max(el.scrollWidth, el.clientWidth) - props.item.x
+    const maxHeight = Math.max(el.scrollHeight, el.clientHeight) - props.item.y
+    newWidth = Math.min(newWidth, maxWidth)
+    newHeight = Math.min(newHeight, maxHeight)
+  }
+  
   store.updateItem(props.item.id, { width: newWidth, height: newHeight })
 }
 

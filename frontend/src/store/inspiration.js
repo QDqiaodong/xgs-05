@@ -8,6 +8,7 @@ function generateId() {
 export const useInspirationStore = defineStore('inspiration', () => {
   const boards = ref([])
   const activeBoardId = ref(null)
+  const selectedItemId = ref(null)
 
   const defaultBoards = [
     {
@@ -21,6 +22,7 @@ export const useInspirationStore = defineStore('inspiration', () => {
 
   function init() {
     const stored = localStorage.getItem('inspiration-boards')
+    const storedActiveId = localStorage.getItem('inspiration-active-board')
     if (stored) {
       try {
         boards.value = JSON.parse(stored)
@@ -30,14 +32,21 @@ export const useInspirationStore = defineStore('inspiration', () => {
     } else {
       boards.value = JSON.parse(JSON.stringify(defaultBoards))
     }
-    if (boards.value.length > 0 && !activeBoardId.value) {
-      activeBoardId.value = boards.value[0].id
+    if (boards.value.length > 0) {
+      if (storedActiveId && boards.value.find(b => b.id === storedActiveId)) {
+        activeBoardId.value = storedActiveId
+      } else {
+        activeBoardId.value = boards.value[0].id
+      }
     }
     saveToStorage()
   }
 
   function saveToStorage() {
     localStorage.setItem('inspiration-boards', JSON.stringify(boards.value))
+    if (activeBoardId.value) {
+      localStorage.setItem('inspiration-active-board', activeBoardId.value)
+    }
   }
 
   const activeBoard = ref(null)
@@ -48,6 +57,10 @@ export const useInspirationStore = defineStore('inspiration', () => {
   watch(boards, () => {
     saveToStorage()
   }, { deep: true })
+
+  watch(activeBoardId, () => {
+    saveToStorage()
+  })
 
   function createBoard(name, color = '#667eea') {
     const newBoard = {
@@ -80,6 +93,15 @@ export const useInspirationStore = defineStore('inspiration', () => {
 
   function setActiveBoard(boardId) {
     activeBoardId.value = boardId
+    selectedItemId.value = null
+  }
+
+  function setSelectedItem(itemId) {
+    selectedItemId.value = itemId
+  }
+
+  function clearSelection() {
+    selectedItemId.value = null
   }
 
   function addWorkCard(work, x = 100, y = 100) {
@@ -136,6 +158,9 @@ export const useInspirationStore = defineStore('inspiration', () => {
     const idx = activeBoard.value.items.findIndex(i => i.id === itemId)
     if (idx !== -1) {
       activeBoard.value.items.splice(idx, 1)
+      if (selectedItemId.value === itemId) {
+        selectedItemId.value = null
+      }
     }
   }
 
@@ -152,11 +177,14 @@ export const useInspirationStore = defineStore('inspiration', () => {
     boards,
     activeBoardId,
     activeBoard,
+    selectedItemId,
     init,
     createBoard,
     deleteBoard,
     renameBoard,
     setActiveBoard,
+    setSelectedItem,
+    clearSelection,
     addWorkCard,
     addNote,
     updateItem,
