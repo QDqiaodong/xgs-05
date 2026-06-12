@@ -57,6 +57,13 @@ public class WorkController {
         return Result.success(workService.suggestMaterials(keyword, limit));
     }
 
+    @GetMapping("/{id}/recommend")
+    public Result<List<Work>> getRecommendedWorks(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "8") Integer limit) {
+        return Result.success(workService.getRecommendedWorks(id, limit));
+    }
+
     @PostMapping
     public Result<Long> createWork(@RequestBody Work work) {
         work.setViewCount(0);

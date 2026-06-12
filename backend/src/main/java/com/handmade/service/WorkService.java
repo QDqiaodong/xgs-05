@@ -19,4 +19,6 @@ public interface WorkService extends IService<Work> {
     boolean incrementFavoriteCount(Long workId, boolean increment);
 
     List<Map<String, Object>> suggestMaterials(String keyword, Integer limit);
+
+    List<Work> getRecommendedWorks(Long workId, Integer limit);
 }

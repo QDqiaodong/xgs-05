@@ -8,6 +8,7 @@ import com.handmade.entity.Work;
 import com.handmade.mapper.WorkMapper;
 import com.handmade.service.WorkService;
 import com.handmade.strategy.HotScoreCalculator;
+import com.handmade.strategy.WorkSimilarityCalculator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -23,16 +24,22 @@ public class WorkServiceImpl extends ServiceImpl<WorkMapper, Work> implements Wo
 
     private static final String HOT_WORKS_KEY = "hot:works";
     private static final String MATERIALS_CACHE_KEY = "materials:suggest";
+    private static final String RECOMMEND_CACHE_KEY = "recommend:works:";
     private static final long CACHE_EXPIRE = 1;
     private static final long MATERIALS_CACHE_EXPIRE = 2;
+    private static final long RECOMMEND_CACHE_EXPIRE = 2;
     private static final Pattern MATERIAL_SPLIT_PATTERN = Pattern.compile("[,，、;；\\n\\r]+");
     private static final int HOT_CANDIDATE_LIMIT = 200;
+    private static final int RECOMMEND_CANDIDATE_LIMIT = 300;
 
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
 
     @Autowired
     private HotScoreCalculator hotScoreCalculator;
+
+    @Autowired
+    private WorkSimilarityCalculator workSimilarityCalculator;
 
     @Override
     public IPage<Work> getWorkList(Integer page, Integer size, Long categoryId, String keyword) {
@@ -249,5 +256,49 @@ public class WorkServiceImpl extends ServiceImpl<WorkMapper, Work> implements Wo
             int count = Integer.parseInt(pair[1]);
             countMap.merge(name, count, (oldVal, newVal) -> Math.max(oldVal, newVal));
         }
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public List<Work> getRecommendedWorks(Long workId, Integer limit) {
+        if (workId == null) {
+            return Collections.emptyList();
+        }
+        int maxLimit = limit != null ? limit : 8;
+
+        String cacheKey = RECOMMEND_CACHE_KEY + workId + ":" + maxLimit;
+        List<Work> cached = (List<Work>) redisTemplate.opsForValue().get(cacheKey);
+        if (cached != null && !cached.isEmpty()) {
+            return cached;
+        }
+
+        Work baseWork = this.getById(workId);
+        if (baseWork == null || baseWork.getStatus() == null || baseWork.getStatus() != 1) {
+            return Collections.emptyList();
+        }
+
+        List<Work> candidates = fetchRecommendCandidates(baseWork);
+        List<Work> recommended = workSimilarityCalculator.rankBySimilarity(baseWork, candidates, maxLimit);
+
+        if (!recommended.isEmpty()) {
+            redisTemplate.opsForValue().set(cacheKey, recommended, RECOMMEND_CACHE_EXPIRE, TimeUnit.HOURS);
+        }
+
+        return recommended;
+    }
+
+    private List<Work> fetchRecommendCandidates(Work baseWork) {
+        LambdaQueryWrapper<Work> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Work::getStatus, 1);
+        wrapper.ne(Work::getId, baseWork.getId());
+        if (baseWork.getCategoryId() != null) {
+            wrapper.and(w -> w.eq(Work::getCategoryId, baseWork.getCategoryId())
+                    .or().isNotNull(Work::getMaterials)
+                    .or().isNotNull(Work::getTitle));
+        }
+        wrapper.orderByDesc(Work::getCreateTime);
+        wrapper.orderByDesc(Work::getId);
+        wrapper.last("LIMIT " + RECOMMEND_CANDIDATE_LIMIT);
+        return this.list(wrapper);
     }
 }

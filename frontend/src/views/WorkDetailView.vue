@@ -133,6 +133,24 @@
           <p>该作品暂无制作步骤</p>
         </div>
       </div>
+
+      <div v-if="viewMode === 'detail' && recommendedWorks.length > 0" class="recommend-section card">
+        <div class="recommend-header">
+          <h3 class="recommend-title">
+            <el-icon :size="20" color="#667eea"><MagicStick /></el-icon>
+            你可能还喜欢
+          </h3>
+          <p class="recommend-subtitle">基于作品相似度为你智能推荐</p>
+        </div>
+        <div class="recommend-grid">
+          <WorkCard
+            v-for="item in recommendedWorks"
+            :key="item.id"
+            :work="transformWork(item)"
+            layout="grid"
+          />
+        </div>
+      </div>
     </template>
     <ImageViewer
       v-if="viewerImages.length > 0"
@@ -153,12 +171,13 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { Star, StarFilled, Share, Document, List, ArrowRight, VideoPlay, ArrowLeft, Warning, ZoomIn, Picture } from '@element-plus/icons-vue'
+import { Star, StarFilled, Share, Document, List, ArrowRight, VideoPlay, ArrowLeft, Warning, ZoomIn, Picture, MagicStick } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import StepBrowser from '../components/StepBrowser.vue'
 import ImageViewer from '../components/ImageViewer.vue'
 import ImageMagnifier from '../components/ImageMagnifier.vue'
 import FolderSelectorDialog from '../components/FolderSelectorDialog.vue'
+import WorkCard from '../components/WorkCard.vue'
 import request from '@/utils/request'
 import { getSmallImage, getMediumImage, getLargeImage, getOriginalImage } from '@/utils/image'
 import { useFavoriteStore } from '@/store/favorite'
@@ -186,6 +205,7 @@ const author = ref({})
 const workImages = ref([])
 const steps = ref([])
 const imageErrors = ref({})
+const recommendedWorks = ref([])
 
 const displayImages = computed(() => {
   const cover = work.value.coverImage
@@ -233,6 +253,7 @@ async function fetchWorkDetail() {
   error.value = false
   imageErrors.value = {}
   activeImage.value = 0
+  recommendedWorks.value = []
   try {
     const workId = route.params.id
     const res = await request.get(`/work/${workId}`)
@@ -243,6 +264,7 @@ async function fetchWorkDetail() {
       if (res.data.userId) {
         await fetchAuthorInfo(res.data.userId)
       }
+      fetchRecommendedWorks(workId)
     } else {
       work.value = {}
     }
@@ -251,6 +273,34 @@ async function fetchWorkDetail() {
     errorMsg.value = e.response?.data?.message || e.message || '网络请求失败'
   } finally {
     loading.value = false
+  }
+}
+
+async function fetchRecommendedWorks(workId) {
+  try {
+    const res = await request.get(`/work/${workId}/recommend`, { params: { limit: 8 } })
+    if (res.code === 200 && res.data) {
+      recommendedWorks.value = res.data
+    }
+  } catch (e) {
+    console.warn('获取推荐作品失败', e)
+  }
+}
+
+function transformWork(item) {
+  return {
+    id: item.id,
+    title: item.title,
+    description: item.description,
+    coverImage: item.coverImage,
+    categoryId: item.categoryId,
+    viewCount: item.viewCount || 0,
+    favoriteCount: item.favoriteCount || 0,
+    likeCount: item.likeCount || 0,
+    isHot: item.isHot,
+    authorId: item.userId,
+    authorName: '手作达人',
+    authorAvatar: ''
   }
 }
 
@@ -622,6 +672,44 @@ watch(() => userStore.isLoggedIn, (val) => {
   font-size: 16px;
 }
 
+.recommend-section {
+  margin-top: 30px;
+  padding: 30px;
+}
+
+.recommend-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.recommend-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 22px;
+  font-weight: 600;
+  color: #303133;
+  margin: 0 0 8px 0;
+}
+
+.recommend-subtitle {
+  font-size: 13px;
+  color: #909399;
+  margin: 0;
+}
+
+.recommend-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+@media (max-width: 1200px) {
+  .recommend-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
 @media (max-width: 968px) {
   .detail-card {
     grid-template-columns: 1fr;
@@ -633,6 +721,25 @@ watch(() => userStore.isLoggedIn, (val) => {
 
   .steps-view-title {
     font-size: 20px;
+  }
+
+  .recommend-section {
+    padding: 20px;
+  }
+
+  .recommend-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+
+  .recommend-title {
+    font-size: 18px;
+  }
+}
+
+@media (max-width: 600px) {
+  .recommend-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 </style>
