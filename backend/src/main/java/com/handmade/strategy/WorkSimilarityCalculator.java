@@ -39,10 +39,10 @@ public class WorkSimilarityCalculator {
 
     public long calculate(Work baseWork, Work candidateWork) {
         if (baseWork == null || candidateWork == null) {
-            return MIN_SCORE;
+            return (long) MIN_SCORE;
         }
         if (baseWork.getId() != null && baseWork.getId().equals(candidateWork.getId())) {
-            return MIN_SCORE;
+            return (long) MIN_SCORE;
         }
 
         double categoryScore = calculateCategoryScore(baseWork, candidateWork);

@@ -15,7 +15,7 @@ import java.util.Comparator;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
 class WorkSimilarityCalculatorTest {
@@ -42,7 +42,7 @@ class WorkSimilarityCalculatorTest {
         baseWork.setLikeCount(200);
         baseWork.setCreateTime(LocalDateTime.now().minusDays(5));
 
-        when(hotScoreCalculator.calculate(org.mockito.ArgumentMatchers.any(Work.class)))
+        lenient().when(hotScoreCalculator.calculate(org.mockito.ArgumentMatchers.any(Work.class)))
                 .thenReturn(1000000L);
     }
 
