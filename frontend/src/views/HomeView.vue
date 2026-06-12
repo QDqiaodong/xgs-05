@@ -17,14 +17,17 @@
           <h2>热门作品</h2>
           <router-link to="/category/all" class="more">查看更多 →</router-link>
         </div>
-        <div v-if="loading" class="loading">
+        <div v-if="loading && works.length === 0" class="loading">
           <el-skeleton :rows="5" animated />
         </div>
         <div v-else class="masonry-grid">
           <WorkCard v-for="work in works" :key="work.id" :work="work" />
         </div>
-        <div v-if="hasMore" class="load-more" ref="loadMoreRef">
-          <el-button :loading="loadingMore" @click="loadMore">加载更多</el-button>
+        <div v-if="hasMore && !loading" class="load-more" ref="loadMoreRef">
+          <el-button :loading="loadingMore" :disabled="loadingMore" @click="loadMore">加载更多</el-button>
+        </div>
+        <div v-if="!hasMore && works.length > 0 && !loading" class="no-more">
+          <span>已加载全部作品</span>
         </div>
       </div>
     </div>
@@ -68,6 +71,8 @@ const hasMore = ref(true)
 const page = ref(1)
 const pageSize = 10
 const loadMoreRef = ref(null)
+const loadedIds = ref(new Set())
+let fetchVersion = 0
 
 function transformWork(item) {
   return {
@@ -87,52 +92,77 @@ function transformWork(item) {
   }
 }
 
+function appendWorks(records) {
+  const newItems = []
+  for (const item of records) {
+    const work = transformWork(item)
+    if (!loadedIds.value.has(work.id)) {
+      loadedIds.value.add(work.id)
+      newItems.push(work)
+    }
+  }
+  works.value = [...works.value, ...newItems]
+}
+
 async function loadWorks(reset = false) {
   if (reset) {
+    fetchVersion++
     page.value = 1
     works.value = []
+    loadedIds.value = new Set()
     hasMore.value = true
   }
   loading.value = true
+  const currentVersion = fetchVersion
   try {
     const res = await request.get('/work/hot', {
       params: { page: page.value, size: pageSize }
     })
+    if (currentVersion !== fetchVersion) return
     if (res.code === 200 && res.data) {
       const records = res.data.records || []
       if (page.value === 1) {
+        loadedIds.value = new Set()
         works.value = records.map(transformWork)
+        works.value.forEach(w => loadedIds.value.add(w.id))
       } else {
-        works.value = [...works.value, ...records.map(transformWork)]
+        appendWorks(records)
       }
-      hasMore.value = works.value.length < res.data.total
+      hasMore.value = records.length >= pageSize
     } else {
       works.value = []
     }
   } catch (e) {
+    if (currentVersion !== fetchVersion) return
     console.error('加载作品列表失败', e)
     ElMessage.error('加载失败，请刷新重试')
   } finally {
-    loading.value = false
+    if (currentVersion === fetchVersion) {
+      loading.value = false
+    }
   }
 }
 
 async function loadMore() {
-  if (loadingMore.value || !hasMore.value) return
+  if (loadingMore.value || !hasMore.value || loading.value) return
   loadingMore.value = true
   try {
     page.value++
+    const currentVersion = fetchVersion
     const res = await request.get('/work/hot', {
       params: { page: page.value, size: pageSize }
     })
+    if (currentVersion !== fetchVersion) return
     if (res.code === 200 && res.data) {
       const records = res.data.records || []
-      works.value = [...works.value, ...records.map(transformWork)]
-      hasMore.value = works.value.length < res.data.total
+      appendWorks(records)
+      hasMore.value = records.length >= pageSize
     }
   } catch (e) {
+    if (currentVersion === fetchVersion) {
+      page.value--
+    }
     console.error('加载更多失败', e)
-    page.value--
   } finally {
     loadingMore.value = false
   }
@@ -217,5 +247,12 @@ onUnmounted(() => {
 .load-more {
   text-align: center;
   padding: 30px 0;
+}
+
+.no-more {
+  text-align: center;
+  padding: 20px 0;
+  color: #999;
+  font-size: 14px;
 }
 </style>
