@@ -195,7 +195,7 @@ class HotScoreCalculatorTest {
         works.add(work3);
 
         List<Work> sorted = works.stream()
-                .sorted(Comparator.comparingLong(calculator::calculate)
+                .sorted(Comparator.comparingLong((Work work) -> calculator.calculate(work))
                         .reversed()
                         .thenComparing(Work::getId, Comparator.reverseOrder()))
                 .collect(Collectors.toList());
@@ -211,7 +211,7 @@ class HotScoreCalculatorTest {
         List<Work> works = generateTestWorks(20);
 
         Comparator<Work> stableComparator = Comparator
-                .comparingLong(calculator::calculate).reversed()
+                .comparingLong((Work work) -> calculator.calculate(work)).reversed()
                 .thenComparing(Work::getId, Comparator.reverseOrder());
 
         List<Work> sorted1 = works.stream().sorted(stableComparator).collect(Collectors.toList());
