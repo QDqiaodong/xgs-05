@@ -130,4 +130,54 @@ export function checkHasVoted(activityId, activityWorkId) {
   return request.get('/activity-vote/has-voted', { params: { activityId, activityWorkId } })
 }
 
+export function getChainActivityList(params) {
+  return request.get('/chain-activity/list', { params })
+}
+
+export function getOngoingChainActivities(params) {
+  return request.get('/chain-activity/ongoing', { params })
+}
+
+export function getChainActivityDetail(id) {
+  return request.get(`/chain-activity/${id}`)
+}
+
+export function getChainGenealogy(id) {
+  return request.get(`/chain-activity/${id}/genealogy`)
+}
+
+export function createChainActivity(data) {
+  return request.post('/chain-activity', data)
+}
+
+export function updateChainActivity(id, data) {
+  return request.put(`/chain-activity/${id}`, data)
+}
+
+export function deleteChainActivity(id) {
+  return request.delete(`/chain-activity/${id}`)
+}
+
+export function getChainWorks(params) {
+  return request.get('/chain-work/list', { params })
+}
+
+export function getMyChainWorks(params) {
+  return request.get('/chain-work/my', { params })
+}
+
+export function getChainWorkDetail(id) {
+  return request.get(`/chain-work/${id}`)
+}
+
+export function submitChainWork(data) {
+  return request.post('/chain-work/submit', data)
+}
+
+export function auditChainWork(id, auditStatus, auditRemark) {
+  return request.put(`/chain-work/${id}/audit`, null, {
+    params: { auditStatus, auditRemark }
+  })
+}
+
 export default request

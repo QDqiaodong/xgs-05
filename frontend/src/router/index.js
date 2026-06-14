@@ -65,6 +65,21 @@ const routes = [
     path: '/admin/activity',
     name: 'ActivityAdmin',
     component: () => import('@/views/ActivityAdmin.vue')
+  },
+  {
+    path: '/chain-activities',
+    name: 'ChainActivities',
+    component: () => import('@/views/ChainActivitiesView.vue')
+  },
+  {
+    path: '/chain-activity/:id',
+    name: 'ChainActivityDetail',
+    component: () => import('@/views/ChainActivityDetailView.vue')
+  },
+  {
+    path: '/chain-publish/:chainActivityId',
+    name: 'ChainPublish',
+    component: () => import('@/views/ChainPublishView.vue')
   }
 ]
 
