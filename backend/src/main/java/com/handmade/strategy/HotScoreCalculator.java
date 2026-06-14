@@ -21,10 +21,15 @@ public class HotScoreCalculator {
     private static final double NEW_BOOST_DAYS = 3.0;
     private static final double NEW_BOOST_FACTOR = 1.5;
     private static final double LOG_BASE = 2.0;
+    private static final double CERTIFIED_CREATOR_BOOST = 1.3;
 
     private static final long SCORE_SCALE = 1_000_000L;
 
     public long calculate(Work work) {
+        return calculate(work, false);
+    }
+
+    public long calculate(Work work, boolean isCertifiedCreator) {
         if (work == null) {
             return 0L;
         }
@@ -44,6 +49,10 @@ public class HotScoreCalculator {
         if (days <= NEW_BOOST_DAYS) {
             double boostRatio = 1.0 + (NEW_BOOST_FACTOR - 1.0) * (1.0 - days / NEW_BOOST_DAYS);
             totalScore *= boostRatio;
+        }
+
+        if (isCertifiedCreator) {
+            totalScore *= CERTIFIED_CREATOR_BOOST;
         }
 
         return (long) (totalScore * SCORE_SCALE);

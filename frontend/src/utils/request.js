@@ -48,4 +48,32 @@ export function setWorkDifficulty(workId, difficultyLevel) {
   })
 }
 
+export function getMyVerificationStatus() {
+  return request.get('/creator-verification/my-status')
+}
+
+export function getUserVerificationStatus(userId) {
+  return request.get(`/creator-verification/user/${userId}/status`)
+}
+
+export function getVerificationList(params) {
+  return request.get('/creator-verification/list', { params })
+}
+
+export function getVerificationDetail(id) {
+  return request.get(`/creator-verification/${id}`)
+}
+
+export function approveVerification(id, remark) {
+  return request.put(`/creator-verification/${id}/approve`, null, {
+    params: { remark }
+  })
+}
+
+export function rejectVerification(id, remark) {
+  return request.put(`/creator-verification/${id}/reject`, null, {
+    params: { remark }
+  })
+}
+
 export default request

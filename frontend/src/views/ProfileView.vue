@@ -7,6 +7,18 @@
           <div class="username-row">
             <h1>{{ user.nickname || user.username }}</h1>
             <CreatorLevelBadge v-if="user.creatorLevel" :level="user.creatorLevel" size="medium" />
+            <CreatorVerifiedBadge v-if="user.isCertified === 1" size="medium" />
+          </div>
+          <div v-if="verificationStatus" class="verification-status" :class="'status-' + verificationStatus.status">
+            <el-tag v-if="verificationStatus.status === 0" type="warning" size="small">
+              认证审核中：您的申请已提交，请耐心等待审核结果
+            </el-tag>
+            <el-tag v-else-if="verificationStatus.status === 1" type="success" size="small">
+              认证已通过 ✨ 您已成为认证创作者
+            </el-tag>
+            <el-tag v-else-if="verificationStatus.status === 2" type="danger" size="small">
+              认证未通过：{{ verificationStatus.reviewRemark || '请检查资料后重新申请' }}
+            </el-tag>
           </div>
           <p class="bio">{{ user.bio || '热爱手工创作的艺术家' }}</p>
           <div class="level-progress" v-if="levelInfo.score !== undefined">
@@ -45,6 +57,13 @@
         </div>
       </div>
       <div class="profile-actions" v-if="isOwner">
+        <el-button
+          v-if="user.isCertified !== 1 && (!verificationStatus || verificationStatus.status !== 0)"
+          type="success"
+          @click="showVerifyDialog = true"
+        >
+          {{ verificationStatus && verificationStatus.status === 2 ? '重新申请认证' : '申请创作者认证' }}
+        </el-button>
         <el-button type="primary">编辑资料</el-button>
       </div>
       <div class="profile-actions" v-else>
@@ -156,6 +175,11 @@
       :creator-id="userId"
       @success="handleInvitationSent"
     />
+
+    <CreatorVerifyDialog
+      v-model="showVerifyDialog"
+      @success="onVerifySubmitted"
+    />
   </div>
 </template>
 
@@ -167,8 +191,10 @@ import { useFavoriteStore } from '@/store/favorite'
 import { Grid, Menu, List } from '@element-plus/icons-vue'
 import WorkCard from '@/components/WorkCard.vue'
 import CreatorLevelBadge from '@/components/CreatorLevelBadge.vue'
+import CreatorVerifiedBadge from '@/components/CreatorVerifiedBadge.vue'
 import CreateInvitationDialog from '@/components/CreateInvitationDialog.vue'
-import request from '@/utils/request'
+import CreatorVerifyDialog from '@/components/CreatorVerifyDialog.vue'
+import request, { getMyVerificationStatus, getUserVerificationStatus } from '@/utils/request'
 import { getLevelGradient, calculateLevelProgress } from '@/utils/creatorLevel'
 import { ElMessage } from 'element-plus'
 
@@ -184,6 +210,8 @@ const page = ref(1)
 const pageSize = 10
 const userId = ref(null)
 const showInviteDialog = ref(false)
+const showVerifyDialog = ref(false)
+const verificationStatus = ref(null)
 const profileInvitations = ref([])
 const invitationsLoading = ref(false)
 const pendingInvitationCount = ref(0)
@@ -247,7 +275,8 @@ function transformWork(item) {
     authorId: item.userId,
     authorName: user.value.nickname || user.value.username || '手作达人',
     authorAvatar: user.value.avatar || '',
-    authorLevel: user.value.creatorLevel || 1
+    authorLevel: user.value.creatorLevel || 1,
+    authorIsCertified: user.value.isCertified || 0
   }
 }
 
@@ -432,6 +461,33 @@ function handleInvitationSent() {
   ElMessage.success('邀约已发送，请等待创作者回复')
 }
 
+async function loadVerificationStatus(uid) {
+  if (!uid) return
+  try {
+    let res
+    if (isOwner.value && userStore.isLoggedIn) {
+      res = await getMyVerificationStatus()
+    } else {
+      res = await getUserVerificationStatus(uid)
+    }
+    if (res.code === 200 && res.data) {
+      verificationStatus.value = res.data
+    } else {
+      verificationStatus.value = null
+    }
+  } catch (e) {
+    console.warn('加载认证状态失败', e)
+    verificationStatus.value = null
+  }
+}
+
+function onVerifySubmitted() {
+  if (userId.value) {
+    loadVerificationStatus(userId.value)
+    loadUserInfo(userId.value)
+  }
+}
+
 let lastRefreshKey = 0
 
 function checkNeedRefresh() {
@@ -452,7 +508,8 @@ async function initProfile() {
   user.value.id = uid
   await Promise.all([
     loadUserInfo(uid),
-    loadUserWorks(true)
+    loadUserWorks(true),
+    loadVerificationStatus(uid)
   ])
 }
 
@@ -545,6 +602,18 @@ watch(() => userStore.isLoggedIn, (val) => {
 
 .username-row h1 {
   margin: 0;
+}
+
+.verification-status {
+  margin-bottom: 12px;
+}
+
+.verification-status :deep(.el-tag) {
+  max-width: 100%;
+  white-space: normal;
+  line-height: 1.5;
+  height: auto;
+  padding: 4px 10px;
 }
 
 .bio {

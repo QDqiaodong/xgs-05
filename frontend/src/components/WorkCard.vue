@@ -57,6 +57,7 @@
           <div class="author-info-inline">
             <span class="author-name">{{ work.authorName }}</span>
             <CreatorLevelBadge v-if="work.authorLevel" :level="work.authorLevel" size="small" :show-name="false" />
+            <CreatorVerifiedBadge v-if="work.authorIsCertified === 1" size="small" />
           </div>
         </router-link>
         <div class="stats">
@@ -93,6 +94,7 @@ import { useFavoriteStore } from '@/store/favorite'
 import { useUserStore } from '@/store/user'
 import FolderSelectorDialog from './FolderSelectorDialog.vue'
 import CreatorLevelBadge from './CreatorLevelBadge.vue'
+import CreatorVerifiedBadge from './CreatorVerifiedBadge.vue'
 
 const props = defineProps({
   work: {

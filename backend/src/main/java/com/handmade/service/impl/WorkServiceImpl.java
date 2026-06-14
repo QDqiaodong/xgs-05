@@ -128,7 +128,14 @@ public class WorkServiceImpl extends ServiceImpl<WorkMapper, Work> implements Wo
     }
 
     private long getHotScore(Work work) {
-        return hotScoreCalculator.calculate(work);
+        boolean isCertifiedCreator = false;
+        if (work.getUserId() != null) {
+            User creator = userService.getById(work.getUserId());
+            if (creator != null && creator.getIsCertified() != null && creator.getIsCertified() == 1) {
+                isCertifiedCreator = true;
+            }
+        }
+        return hotScoreCalculator.calculate(work, isCertifiedCreator);
     }
 
     private IPage<Work> buildPagedResult(List<Work> allWorks, Integer page, Integer size) {

@@ -26,6 +26,10 @@ public class User {
 
     private Integer creatorLevel;
 
+    private Integer isCertified;
+
+    private LocalDateTime certifiedTime;
+
     private Integer totalWorkCount;
 
     private Integer totalViewCount;

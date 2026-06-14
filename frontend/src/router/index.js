@@ -45,6 +45,11 @@ const routes = [
     path: '/invitation/:id',
     name: 'InvitationDetail',
     component: () => import('@/views/InvitationDetailView.vue')
+  },
+  {
+    path: '/admin/creator-verify',
+    name: 'CreatorVerifyAdmin',
+    component: () => import('@/views/CreatorVerifyAdmin.vue')
   }
 ]
 

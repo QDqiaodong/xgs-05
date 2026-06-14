@@ -19,12 +19,20 @@
       </nav>
       <div class="user-area">
         <template v-if="userStore.isLoggedIn">
-          <router-link :to="`/profile/${userStore.userInfo?.id}`" class="user-avatar">
-            <img :src="userStore.userInfo?.avatar || 'https://via.placeholder.com/40'" alt="avatar" />
+          <router-link :to="`/profile/${userStore.userInfo?.id}`" class="user-avatar-wrapper">
+            <div class="user-avatar">
+              <img :src="userStore.userInfo?.avatar || 'https://via.placeholder.com/40'" alt="avatar" />
+              <span
+                v-if="userStore.userInfo?.isCertified === 1"
+                class="avatar-verified-icon"
+                title="认证创作者"
+              >✓</span>
+            </div>
           </router-link>
           <router-link to="/invitations" class="nav-item">邀约</router-link>
           <router-link to="/favorites" class="nav-item">收藏</router-link>
           <router-link to="/inspiration" class="nav-item">灵感画布</router-link>
+          <router-link v-if="userStore.isAdmin" to="/admin/creator-verify" class="nav-item">认证审核</router-link>
           <span @click="handleLogout" class="nav-item logout">退出</span>
         </template>
         <template v-else>
@@ -190,11 +198,39 @@ function handleLogout() {
   gap: 16px;
 }
 
+.user-avatar-wrapper {
+  display: inline-block;
+}
+
+.user-avatar {
+  position: relative;
+  display: inline-block;
+}
+
 .user-avatar img {
   width: 36px;
   height: 36px;
   border-radius: 50%;
   border: 2px solid rgba(255, 255, 255, 0.5);
+  display: block;
+}
+
+.avatar-verified-icon {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 50%, #ffd26f 100%);
+  color: #fff;
+  font-size: 9px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #fff;
+  line-height: 1;
 }
 
 .logout {
