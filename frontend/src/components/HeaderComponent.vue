@@ -22,6 +22,7 @@
           <router-link :to="`/profile/${userStore.userInfo?.id}`" class="user-avatar">
             <img :src="userStore.userInfo?.avatar || 'https://via.placeholder.com/40'" alt="avatar" />
           </router-link>
+          <router-link to="/invitations" class="nav-item">邀约</router-link>
           <router-link to="/favorites" class="nav-item">收藏</router-link>
           <router-link to="/inspiration" class="nav-item">灵感画布</router-link>
           <span @click="handleLogout" class="nav-item logout">退出</span>

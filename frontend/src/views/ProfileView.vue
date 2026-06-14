@@ -49,6 +49,7 @@
       </div>
       <div class="profile-actions" v-else>
         <el-button type="primary">+ 关注</el-button>
+        <el-button @click="showInviteDialog = true">💌 定制邀约</el-button>
       </div>
     </div>
 
@@ -57,6 +58,10 @@
         <div class="tabs-nav">
           <div :class="['tab-item', { 'is-active': activeTab === 'works' }]" @click="activeTab = 'works'">全部作品</div>
           <div :class="['tab-item', { 'is-active': activeTab === 'favorites' }]" @click="activeTab = 'favorites'">收藏作品</div>
+          <div :class="['tab-item', { 'is-active': activeTab === 'invitations' }]" v-if="isOwner" @click="activeTab = 'invitations'">
+            收到的邀约
+            <span v-if="pendingInvitationCount > 0" class="tab-badge">{{ pendingInvitationCount }}</span>
+          </div>
         </div>
         <div class="layout-switcher">
           <span class="layout-label">展示模式：</span>
@@ -103,7 +108,54 @@
           <el-empty description="暂无收藏" />
         </div>
       </div>
+
+      <div v-show="activeTab === 'invitations'">
+        <div v-if="invitationsLoading" class="loading">
+          <el-skeleton :rows="5" animated />
+        </div>
+        <div v-else-if="profileInvitations.length > 0" class="invitation-list">
+          <router-link
+            v-for="item in profileInvitations"
+            :key="item.invitation.id"
+            :to="`/invitation/${item.invitation.id}`"
+            class="invitation-card card"
+          >
+            <div class="invitation-header">
+              <div class="invitation-title">{{ item.invitation.title }}</div>
+              <el-tag :type="getInvitationStatusType(item.invitation.status)" size="small">
+                {{ getInvitationStatusText(item.invitation.status) }}
+              </el-tag>
+            </div>
+            <div class="invitation-info">
+              <div class="info-item">
+                <span class="label">客户：</span>
+                <span class="value">{{ item.client?.nickname || item.client?.username }}</span>
+              </div>
+              <div class="info-item" v-if="item.invitation.budgetMin || item.invitation.budgetMax">
+                <span class="label">预算：</span>
+                <span class="value">{{ formatInvitationBudget(item.invitation.budgetMin, item.invitation.budgetMax) }}</span>
+              </div>
+              <div class="info-item">
+                <span class="label">发起时间：</span>
+                <span class="value">{{ formatInvitationDate(item.invitation.createTime) }}</span>
+              </div>
+            </div>
+            <div class="invitation-requirements" v-if="item.invitation.requirements">
+              {{ item.invitation.requirements }}
+            </div>
+          </router-link>
+        </div>
+        <div v-else class="empty">
+          <el-empty description="暂无收到的邀约" />
+        </div>
+      </div>
     </div>
+
+    <CreateInvitationDialog
+      v-model="showInviteDialog"
+      :creator-id="userId"
+      @success="handleInvitationSent"
+    />
   </div>
 </template>
 
@@ -115,6 +167,7 @@ import { useFavoriteStore } from '@/store/favorite'
 import { Grid, Menu, List } from '@element-plus/icons-vue'
 import WorkCard from '@/components/WorkCard.vue'
 import CreatorLevelBadge from '@/components/CreatorLevelBadge.vue'
+import CreateInvitationDialog from '@/components/CreateInvitationDialog.vue'
 import request from '@/utils/request'
 import { getLevelGradient, calculateLevelProgress } from '@/utils/creatorLevel'
 import { ElMessage } from 'element-plus'
@@ -130,6 +183,10 @@ const hasMore = ref(true)
 const page = ref(1)
 const pageSize = 10
 const userId = ref(null)
+const showInviteDialog = ref(false)
+const profileInvitations = ref([])
+const invitationsLoading = ref(false)
+const pendingInvitationCount = ref(0)
 
 const gridContainerClass = computed(() => {
   return `works-container works-${activeLayout.value}`
@@ -308,6 +365,73 @@ async function loadProfileFavorites() {
   }
 }
 
+function getInvitationStatusText(status) {
+  const map = {
+    0: '待接受',
+    1: '已接受',
+    2: '已拒绝',
+    3: '进行中',
+    4: '已完成',
+    5: '已取消'
+  }
+  return map[status] || '未知'
+}
+
+function getInvitationStatusType(status) {
+  const map = {
+    0: 'warning',
+    1: 'success',
+    2: 'danger',
+    3: 'primary',
+    4: 'success',
+    5: 'info'
+  }
+  return map[status] || 'info'
+}
+
+function formatInvitationBudget(min, max) {
+  if (min && max) {
+    return `¥${min} - ¥${max}`
+  } else if (min) {
+    return `¥${min} 起`
+  } else if (max) {
+    return `¥${max} 以内`
+  }
+  return '面议'
+}
+
+function formatInvitationDate(dateStr) {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+}
+
+async function loadProfileInvitations() {
+  if (!userStore.isLoggedIn || !isOwner.value || !userId.value) {
+    profileInvitations.value = []
+    pendingInvitationCount.value = 0
+    return
+  }
+  invitationsLoading.value = true
+  try {
+    const res = await request.get('/invitation/creator', {
+      params: { page: 1, size: 20 }
+    })
+    if (res.code === 200 && res.data) {
+      profileInvitations.value = res.data.records || []
+      pendingInvitationCount.value = profileInvitations.value.filter(r => r.invitation.status === 0).length
+    }
+  } catch (e) {
+    console.warn('加载邀约失败', e)
+  } finally {
+    invitationsLoading.value = false
+  }
+}
+
+function handleInvitationSent() {
+  ElMessage.success('邀约已发送，请等待创作者回复')
+}
+
 let lastRefreshKey = 0
 
 function checkNeedRefresh() {
@@ -337,6 +461,9 @@ onMounted(() => {
   if (activeTab.value === 'favorites') {
     loadProfileFavorites()
   }
+  if (activeTab.value === 'invitations') {
+    loadProfileInvitations()
+  }
   window.addEventListener('focus', checkNeedRefresh)
 })
 
@@ -351,6 +478,8 @@ watch(() => route.params.userId, () => {
 watch(activeTab, (val) => {
   if (val === 'favorites') {
     loadProfileFavorites()
+  } else if (val === 'invitations') {
+    loadProfileInvitations()
   }
 })
 
@@ -365,6 +494,12 @@ watch(() => userStore.isLoggedIn, (val) => {
     loadProfileFavorites()
   } else if (!val) {
     favorites.value = []
+  }
+  if (val && activeTab.value === 'invitations') {
+    loadProfileInvitations()
+  } else if (!val) {
+    profileInvitations.value = []
+    pendingInvitationCount.value = 0
   }
 })
 </script>
@@ -505,6 +640,18 @@ watch(() => userStore.isLoggedIn, (val) => {
   position: relative;
   transition: color 0.3s;
   margin-bottom: -2px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tab-badge {
+  background: #f56c6c;
+  color: #fff;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  line-height: 1;
 }
 
 .tab-item:hover {
@@ -611,5 +758,68 @@ watch(() => userStore.isLoggedIn, (val) => {
   .works-grid {
     grid-template-columns: 1fr;
   }
+}
+
+.invitation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.invitation-card {
+  padding: 20px 24px;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: block;
+}
+
+.invitation-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+}
+
+.invitation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.invitation-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+}
+
+.invitation-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 32px;
+  margin-bottom: 12px;
+}
+
+.invitation-info .info-item {
+  font-size: 14px;
+}
+
+.invitation-info .info-item .label {
+  color: #909399;
+}
+
+.invitation-info .info-item .value {
+  color: #333;
+}
+
+.invitation-requirements {
+  color: #606266;
+  font-size: 14px;
+  line-height: 1.6;
+  padding: 12px 16px;
+  background: #f5f7fa;
+  border-radius: 6px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 </style>

@@ -35,6 +35,16 @@ const routes = [
     path: '/inspiration',
     name: 'Inspiration',
     component: () => import('@/views/InspirationCanvasView.vue')
+  },
+  {
+    path: '/invitations',
+    name: 'Invitations',
+    component: () => import('@/views/InvitationsView.vue')
+  },
+  {
+    path: '/invitation/:id',
+    name: 'InvitationDetail',
+    component: () => import('@/views/InvitationDetailView.vue')
   }
 ]
 
