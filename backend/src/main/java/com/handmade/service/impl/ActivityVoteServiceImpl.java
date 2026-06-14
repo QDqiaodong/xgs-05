@@ -76,7 +76,6 @@ public class ActivityVoteServiceImpl extends ServiceImpl<ActivityVoteMapper, Act
         LambdaQueryWrapper<ActivityVote> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(ActivityVote::getActivityId, activityId);
         wrapper.eq(ActivityVote::getUserId, userId);
-        wrapper.select("COALESCE(SUM(vote_count), 0) as total");
         List<ActivityVote> votes = this.list(wrapper);
         int total = 0;
         for (ActivityVote v : votes) {
