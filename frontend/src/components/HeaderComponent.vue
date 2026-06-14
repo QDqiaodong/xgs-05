@@ -7,6 +7,7 @@
       </router-link>
       <nav class="nav">
         <router-link to="/" class="nav-item">首页</router-link>
+        <router-link to="/activities" class="nav-item">活动</router-link>
         <div class="nav-item dropdown">
           <span>分类</span>
           <div class="dropdown-menu">
@@ -33,6 +34,7 @@
           <router-link to="/favorites" class="nav-item">收藏</router-link>
           <router-link to="/inspiration" class="nav-item">灵感画布</router-link>
           <router-link v-if="userStore.isAdmin" to="/admin/creator-verify" class="nav-item">认证审核</router-link>
+          <router-link v-if="userStore.isAdmin" to="/admin/activity" class="nav-item">活动管理</router-link>
           <span @click="handleLogout" class="nav-item logout">退出</span>
         </template>
         <template v-else>

@@ -161,3 +161,73 @@ CREATE TABLE IF NOT EXISTS creator_verification (
     INDEX idx_status (status),
     INDEX idx_create_time (create_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='创作者认证申请表';
+
+CREATE TABLE IF NOT EXISTS activity (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键ID',
+    title VARCHAR(200) NOT NULL COMMENT '活动主题',
+    description TEXT COMMENT '活动介绍',
+    rules TEXT COMMENT '参与规则',
+    cover_image VARCHAR(255) COMMENT '活动封面图',
+    banner_image VARCHAR(255) COMMENT '活动Banner图',
+    category_id BIGINT COMMENT '关联分类ID（可选，限定某个分类参加）',
+    start_time DATETIME NOT NULL COMMENT '活动开始时间',
+    end_time DATETIME NOT NULL COMMENT '活动结束时间',
+    vote_start_time DATETIME COMMENT '投票开始时间（默认等于开始时间）',
+    vote_end_time DATETIME COMMENT '投票结束时间（默认等于结束时间）',
+    max_submit_per_user INT DEFAULT 1 COMMENT '每人最多投稿数',
+    max_vote_per_user INT DEFAULT 10 COMMENT '每人最多投票数',
+    allow_same_work_multivote TINYINT DEFAULT 0 COMMENT '是否允许同一作品投多票 0:否 1:是',
+    work_count INT DEFAULT 0 COMMENT '参赛作品总数',
+    vote_count INT DEFAULT 0 COMMENT '总投票数',
+    view_count INT DEFAULT 0 COMMENT '浏览量',
+    status TINYINT DEFAULT 1 COMMENT '状态 0:关闭 1:开启',
+    create_by BIGINT COMMENT '创建人ID',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    deleted TINYINT DEFAULT 0 COMMENT '删除标记 0:未删除 1:已删除',
+    INDEX idx_status (status),
+    INDEX idx_start_time (start_time),
+    INDEX idx_end_time (end_time),
+    INDEX idx_create_time (create_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='手作主题活动表';
+
+CREATE TABLE IF NOT EXISTS activity_work (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键ID',
+    activity_id BIGINT NOT NULL COMMENT '活动ID',
+    work_id BIGINT NOT NULL COMMENT '作品ID',
+    user_id BIGINT NOT NULL COMMENT '投稿用户ID',
+    submit_remark VARCHAR(500) COMMENT '投稿说明',
+    vote_count INT DEFAULT 0 COMMENT '获得票数',
+    rank_num INT DEFAULT 0 COMMENT '排名',
+    submit_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '投稿时间',
+    audit_status TINYINT DEFAULT 1 COMMENT '审核状态 0:待审核 1:已通过 2:已拒绝',
+    audit_remark VARCHAR(500) COMMENT '审核备注',
+    auditor_id BIGINT COMMENT '审核人ID',
+    audit_time DATETIME COMMENT '审核时间',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    deleted TINYINT DEFAULT 0 COMMENT '删除标记 0:未删除 1:已删除',
+    UNIQUE KEY uk_activity_work (activity_id, work_id),
+    INDEX idx_activity_id (activity_id),
+    INDEX idx_work_id (work_id),
+    INDEX idx_user_id (user_id),
+    INDEX idx_vote_count (vote_count),
+    INDEX idx_submit_time (submit_time),
+    INDEX idx_audit_status (audit_status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='活动作品参赛表';
+
+CREATE TABLE IF NOT EXISTS activity_vote (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键ID',
+    activity_id BIGINT NOT NULL COMMENT '活动ID',
+    activity_work_id BIGINT NOT NULL COMMENT '活动作品ID',
+    work_id BIGINT NOT NULL COMMENT '作品ID',
+    user_id BIGINT NOT NULL COMMENT '投票用户ID',
+    vote_count INT DEFAULT 1 COMMENT '投票数',
+    vote_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '投票时间',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    deleted TINYINT DEFAULT 0 COMMENT '删除标记 0:未删除 1:已删除',
+    INDEX idx_activity_id (activity_id),
+    INDEX idx_activity_work_id (activity_work_id),
+    INDEX idx_user_id (user_id),
+    INDEX idx_vote_time (vote_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='活动投票记录表';

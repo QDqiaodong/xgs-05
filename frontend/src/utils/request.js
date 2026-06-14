@@ -76,4 +76,58 @@ export function rejectVerification(id, remark) {
   })
 }
 
+export function getActivityList(params) {
+  return request.get('/activity/list', { params })
+}
+
+export function getOngoingActivities(params) {
+  return request.get('/activity/ongoing', { params })
+}
+
+export function getActivityDetail(id) {
+  return request.get(`/activity/${id}`)
+}
+
+export function createActivity(data) {
+  return request.post('/activity', data)
+}
+
+export function updateActivity(id, data) {
+  return request.put(`/activity/${id}`, data)
+}
+
+export function deleteActivity(id) {
+  return request.delete(`/activity/${id}`)
+}
+
+export function getActivityWorks(params) {
+  return request.get('/activity-work/list', { params })
+}
+
+export function getMySubmissions(params) {
+  return request.get('/activity-work/my', { params })
+}
+
+export function submitWorkToActivity(data) {
+  return request.post('/activity-work/submit', data)
+}
+
+export function auditActivityWork(id, auditStatus, auditRemark) {
+  return request.put(`/activity-work/${id}/audit`, null, {
+    params: { auditStatus, auditRemark }
+  })
+}
+
+export function voteActivityWork(data) {
+  return request.post('/activity-vote/vote', data)
+}
+
+export function getMyVoteCount(activityId) {
+  return request.get('/activity-vote/my-vote-count', { params: { activityId } })
+}
+
+export function checkHasVoted(activityId, activityWorkId) {
+  return request.get('/activity-vote/has-voted', { params: { activityId, activityWorkId } })
+}
+
 export default request

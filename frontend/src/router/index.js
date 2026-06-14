@@ -50,6 +50,21 @@ const routes = [
     path: '/admin/creator-verify',
     name: 'CreatorVerifyAdmin',
     component: () => import('@/views/CreatorVerifyAdmin.vue')
+  },
+  {
+    path: '/activities',
+    name: 'Activities',
+    component: () => import('@/views/ActivitiesView.vue')
+  },
+  {
+    path: '/activity/:id',
+    name: 'ActivityDetail',
+    component: () => import('@/views/ActivityDetailView.vue')
+  },
+  {
+    path: '/admin/activity',
+    name: 'ActivityAdmin',
+    component: () => import('@/views/ActivityAdmin.vue')
   }
 ]
 
