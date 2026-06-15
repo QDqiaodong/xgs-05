@@ -1,0 +1,21 @@
+CREATE TABLE IF NOT EXISTS check_in_record (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键ID',
+    user_id BIGINT NOT NULL COMMENT '用户ID',
+    check_in_date DATE NOT NULL COMMENT '打卡日期',
+    title VARCHAR(200) COMMENT '打卡标题/今日主题',
+    content TEXT COMMENT '创作心得记录',
+    images VARCHAR(2000) COMMENT '打卡照片JSON数组',
+    work_duration INT DEFAULT 0 COMMENT '今日创作时长（分钟）',
+    work_id BIGINT COMMENT '关联作品ID（如有）',
+    mood_tag VARCHAR(50) COMMENT '心情标签',
+    weather_tag VARCHAR(50) COMMENT '天气/环境标签',
+    view_count INT DEFAULT 0 COMMENT '浏览量',
+    like_count INT DEFAULT 0 COMMENT '点赞数',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    deleted TINYINT DEFAULT 0 COMMENT '删除标记 0:未删除 1:已删除',
+    UNIQUE KEY uk_user_date (user_id, check_in_date),
+    INDEX idx_user_id (user_id),
+    INDEX idx_check_in_date (check_in_date),
+    INDEX idx_create_time (create_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='每日创作打卡记录表';

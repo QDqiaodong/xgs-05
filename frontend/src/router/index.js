@@ -80,6 +80,11 @@ const routes = [
     path: '/chain-publish/:chainActivityId',
     name: 'ChainPublish',
     component: () => import('@/views/ChainPublishView.vue')
+  },
+  {
+    path: '/checkin',
+    name: 'CheckIn',
+    component: () => import('@/views/CheckInView.vue')
   }
 ]
 

@@ -9,6 +9,7 @@
         <router-link to="/" class="nav-item">首页</router-link>
         <router-link to="/activities" class="nav-item">活动</router-link>
         <router-link to="/chain-activities" class="nav-item">接龙挑战</router-link>
+        <router-link to="/checkin" class="nav-item">创作打卡</router-link>
         <div class="nav-item dropdown">
           <span>分类</span>
           <div class="dropdown-menu">
