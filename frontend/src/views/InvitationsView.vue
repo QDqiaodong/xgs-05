@@ -195,7 +195,7 @@
 
     <div v-if="hasMore && invitations.length > 0" class="load-more">
       <el-button :loading="loadingMore" @click="loadMore" size="large" class="load-more-btn">
-        <el-icon><Down /></el-icon>
+        <el-icon><ArrowDown /></el-icon>
         加载更多
       </el-button>
     </div>
@@ -208,7 +208,7 @@ import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
   Collection, Clock, CircleCheck, CircleCheckFilled, CircleClose, Loading, Delete,
-  Picture, ArrowRight, Compass, Down
+  Picture, ArrowRight, Compass, ArrowDown
 } from '@element-plus/icons-vue'
 import request from '@/utils/request'
 

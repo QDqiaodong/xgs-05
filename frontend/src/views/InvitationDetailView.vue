@@ -274,7 +274,7 @@
             />
             <div class="input-footer">
               <span class="tip">
-                <el-icon><Keyboard /></el-icon>
+                <el-icon><Key /></el-icon>
                 Ctrl + Enter 快捷发送
               </span>
               <el-button type="primary" :loading="sendLoading" @click="sendMessage" class="send-btn">
@@ -319,7 +319,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   ArrowLeft, Right, Clock, CircleCheck, CircleClose, Loading, Finished, Delete,
-  Promotion, InfoFilled, Warning, Timer, Keyboard, Edit
+  Promotion, InfoFilled, Warning, Timer, Key, Edit
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store/user'
 import request from '@/utils/request'
