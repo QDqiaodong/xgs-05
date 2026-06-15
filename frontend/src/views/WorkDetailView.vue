@@ -100,7 +100,18 @@
                 <p>{{ author.bio || '热爱手工创作的艺术家' }}</p>
               </div>
             </router-link>
-            <el-button type="primary" plain>关注</el-button>
+            <div class="author-actions">
+              <el-button type="primary" plain>关注</el-button>
+              <el-button
+                v-if="!isOwnWork"
+                type="warning"
+                class="invite-btn"
+                @click="showInviteDialog = true"
+              >
+                <el-icon><MagicStick /></el-icon>
+                定制邀约
+              </el-button>
+            </div>
           </div>
           <div class="work-stats">
             <div class="stat">
@@ -198,6 +209,14 @@
       :work-id="work.id"
       @change="onFolderChange"
     />
+
+    <CreateInvitationDialog
+      v-model="showInviteDialog"
+      :creator-id="work.userId"
+      :work-id="work.id"
+      :work-title="work.title"
+      @success="handleInvitationSent"
+    />
   </div>
 </template>
 
@@ -212,6 +231,7 @@ import ImageMagnifier from '../components/ImageMagnifier.vue'
 import FolderSelectorDialog from '../components/FolderSelectorDialog.vue'
 import WorkCard from '../components/WorkCard.vue'
 import CreatorLevelBadge from '../components/CreatorLevelBadge.vue'
+import CreateInvitationDialog from '../components/CreateInvitationDialog.vue'
 import request, { setWorkDifficulty } from '@/utils/request'
 import { getSmallImage, getMediumImage, getLargeImage, getOriginalImage } from '@/utils/image'
 import { useFavoriteStore } from '@/store/favorite'
@@ -228,6 +248,11 @@ const errorMsg = ref('')
 const viewerVisible = ref(false)
 const viewerInitialIndex = ref(0)
 const folderSelectorVisible = ref(false)
+const showInviteDialog = ref(false)
+
+const isOwnWork = computed(() => {
+  return userStore.userInfo?.id === work.value.userId
+})
 
 const isFavorited = computed(() => {
   favoriteStore.version
@@ -432,6 +457,10 @@ async function handleSetDifficulty(level) {
   }
 }
 
+function handleInvitationSent(invitationId) {
+  ElMessage.success('邀约已发送，请等待创作者回复')
+}
+
 onMounted(async () => {
   await fetchWorkDetail()
   if (userStore.isLoggedIn) {
@@ -562,6 +591,25 @@ watch(() => userStore.isLoggedIn, (val) => {
   background: #f8f9fa;
   border-radius: 8px;
   margin-bottom: 24px;
+}
+
+.author-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.invite-btn {
+  background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+  border: none;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.invite-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(253, 160, 133, 0.45);
 }
 
 .author-info {
